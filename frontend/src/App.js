@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import AppointmentsPage from "./pages/AppointmentsPage";
 import Dashboard from "./pages/Dashboard";
 import QRScanner from "./pages/QRScanner";
 import "./App.css";
@@ -18,13 +19,14 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
-          path="/dashboard"
+          path="/appointments"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <AppointmentsPage />
             </ProtectedRoute>
           }
         />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route
           path="/scanner"
           element={

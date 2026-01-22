@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 // Register user
 exports.register = async (req, res) => {
   try {
-    const { name, email, phone, password, role } = req.body;
+    const { name, email, phone, password, role, profileImage } = req.body;
 
     let user = await User.findOne({ email });
     if (user) {
@@ -20,6 +20,7 @@ exports.register = async (req, res) => {
       phone,
       password: hashedPassword,
       role: role || "customer",
+      profileImage,
     });
 
     await user.save();
@@ -94,13 +95,23 @@ exports.getProfile = async (req, res) => {
 // Update user profile
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, phone, address } = req.body;
+    const { name, phone, address, profileImage } = req.body;
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { name, phone, address },
+      { name, phone, address, profileImage },
       { new: true }
     ).select("-password");
     res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get all barbers
+exports.getBarbers = async (req, res) => {
+  try {
+    const barbers = await User.find({ role: "barber" }).select("-password");
+    res.status(200).json(barbers);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

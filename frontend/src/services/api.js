@@ -22,6 +22,7 @@ export const authAPI = {
   login: (data) => api.post("/auth/login", data),
   getProfile: () => api.get("/auth/profile"),
   updateProfile: (data) => api.put("/auth/profile", data),
+  getBarbers: () => api.get("/auth/barbers"),
 };
 
 // Appointment API
@@ -41,6 +42,12 @@ export const serviceAPI = {
   createService: (data) => api.post("/services", data),
   updateService: (id, data) => api.put(`/services/${id}`, data),
   deleteService: (id) => api.delete(`/services/${id}`),
+};
+
+// Lookbook API
+export const lookbookAPI = {
+  getLookbook: () => api.get("/lookbook"),
+  createLookbook: (data) => api.post("/lookbook", data),
 };
 
 export default api;

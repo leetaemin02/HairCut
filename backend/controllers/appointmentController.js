@@ -64,7 +64,21 @@ exports.createAppointment = async (req, res) => {
 // Get all appointments
 exports.getAppointments = async (req, res) => {
   try {
-    const appointments = await Appointment.find({ customerId: req.user.id })
+    let query = {};
+
+    // If customer, show their own appointments
+    // If barber, show appointments assigned to them
+    if (req.user.role === "customer") {
+      query = { customerId: req.user.id };
+    } else if (req.user.role === "barber") {
+      query = { barberId: req.user.id };
+    } else if (req.user.role === "admin") {
+      // Admin sees all appointments
+      query = {};
+    }
+
+    const appointments = await Appointment.find(query)
+      .populate("customerId", "name email phone")
       .populate("barberId", "name email phone")
       .populate("serviceId", "name price duration")
       .sort({ appointmentDate: 1 });

@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const authRoutes = require("./routes/authRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
+const lookbookRoutes = require("./routes/lookbookRoutes");
 
 const app = express();
 
@@ -26,6 +27,7 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/lookbook", lookbookRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
