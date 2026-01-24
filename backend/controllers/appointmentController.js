@@ -3,6 +3,45 @@ const Service = require("../models/Service");
 const QRCode = require("../models/QRCode");
 const QRCodeLib = require("qrcode");
 
+// Helper function to check if a time slot is available
+const checkAvailability = async (barberId, appointmentDate, duration) => {
+  const requestedStart = new Date(appointmentDate);
+  const requestedEnd = new Date(requestedStart.getTime() + duration * 60000);
+
+  // Find all non-cancelled appointments for this barber on the same day
+  const startOfDay = new Date(requestedStart);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(requestedStart);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const existingAppointments = await Appointment.find({
+    barberId,
+    appointmentDate: {
+      $gte: startOfDay,
+      $lte: endOfDay,
+    },
+    status: { $nin: ["cancelled"] }, // Exclude cancelled appointments
+  });
+
+  // Check for overlapping appointments
+  for (const appointment of existingAppointments) {
+    const existingStart = new Date(appointment.appointmentDate);
+    const existingEnd = new Date(
+      existingStart.getTime() + appointment.duration * 60000
+    );
+
+    // Check if there's any overlap
+    if (requestedStart < existingEnd && requestedEnd > existingStart) {
+      return {
+        available: false,
+        conflictingAppointment: appointment,
+      };
+    }
+  }
+
+  return { available: true };
+};
+
 // Create appointment
 exports.createAppointment = async (req, res) => {
   try {
@@ -13,6 +52,20 @@ exports.createAppointment = async (req, res) => {
     const service = await Service.findById(serviceId);
     if (!service) {
       return res.status(404).json({ message: "Service not found" });
+    }
+
+    // Check availability before creating appointment
+    const availabilityCheck = await checkAvailability(
+      barberId,
+      appointmentDate,
+      service.duration
+    );
+
+    if (!availabilityCheck.available) {
+      return res.status(409).json({
+        message: "This time slot is not available",
+        conflictingAppointment: availabilityCheck.conflictingAppointment,
+      });
     }
 
     const appointmentId = `APT-${Date.now()}`;
@@ -170,6 +223,80 @@ exports.scanQRCode = async (req, res) => {
     res.status(200).json({
       message: "QR code scanned successfully",
       appointment,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get available time slots for a specific barber and date
+exports.getAvailableTimeSlots = async (req, res) => {
+  try {
+    const { barberId, date, serviceId } = req.query;
+
+    if (!barberId || !date || !serviceId) {
+      return res.status(400).json({
+        message: "barberId, date, and serviceId are required",
+      });
+    }
+
+    // Get service details for duration
+    const service = await Service.findById(serviceId);
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    // Define business hours (you can customize these)
+    const businessHours = {
+      start: 9, // 9 AM
+      end: 18, // 6 PM
+    };
+
+    const slotDuration = 30; // 30-minute slots
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    // Generate all possible time slots
+    const allSlots = [];
+    for (
+      let hour = businessHours.start;
+      hour < businessHours.end;
+      hour++
+    ) {
+      for (let minute = 0; minute < 60; minute += slotDuration) {
+        const slotTime = new Date(selectedDate);
+        slotTime.setHours(hour, minute, 0, 0);
+        allSlots.push(slotTime);
+      }
+    }
+
+    // Check availability for each slot
+    const availableSlots = [];
+    for (const slot of allSlots) {
+      const availability = await checkAvailability(
+        barberId,
+        slot,
+        service.duration
+      );
+
+      if (availability.available) {
+        availableSlots.push({
+          time: slot,
+          formattedTime: slot.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }),
+        });
+      }
+    }
+
+    res.status(200).json({
+      date: selectedDate,
+      barberId,
+      serviceId,
+      serviceDuration: service.duration,
+      availableSlots,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

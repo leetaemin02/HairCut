@@ -122,8 +122,8 @@ function Dashboard() {
                     <h3 className="text-xl font-bold mb-2">{service.name}</h3>
                     <p className="text-slate-400 text-sm mb-4 line-clamp-2">{service.description || "Experience the best quality service with our experts."}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-blue-400 font-bold">${service.price}</span>
-                      <span className="text-xs text-slate-500">{service.duration} mins</span>
+                      <span className="text-blue-400 font-bold">{Number(service.price).toLocaleString('vi-VN')} VND</span>
+
                     </div>
                   </div>
                 ))

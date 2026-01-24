@@ -37,6 +37,12 @@ function Header({ user }) {
                     >
                         Appointments
                     </button>
+                    <button
+                        onClick={() => navigate("/profile")}
+                        className={`${isActive("/profile")} transition-colors text-sm font-medium`}
+                    >
+                        Profile
+                    </button>
                     <a
                         href="#"
                         className="text-white/60 hover:text-white transition-colors text-sm font-medium"

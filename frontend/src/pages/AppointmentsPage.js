@@ -205,13 +205,34 @@ function AppointmentsPage() {
     if (selectedDateOnly) {
       const [timePart, period] = time.split(" ");
       const [hours, minutes] = timePart.split(":").map(Number);
-      const adjustedHours =
-        period === "PM" && hours !== 12 ? hours + 12 : hours;
+      let adjustedHours = hours;
 
-      const fullDate = new Date(selectedDateOnly);
-      fullDate.setHours(adjustedHours, minutes, 0);
+      // Convert to 24-hour format
+      if (period === "PM" && hours !== 12) {
+        adjustedHours = hours + 12;
+      } else if (period === "AM" && hours === 12) {
+        adjustedHours = 0;
+      }
+
+      // Extract date components to avoid timezone issues
+      const year = selectedDateOnly.getFullYear();
+      const month = selectedDateOnly.getMonth();
+      const day = selectedDateOnly.getDate();
+
+      // Create a fresh date object with the selected date and time in local timezone
+      const fullDate = new Date(year, month, day, adjustedHours, minutes, 0, 0);
+
+      // Format as local datetime string (YYYY-MM-DDTHH:mm:ss) without UTC conversion
+      const localYear = fullDate.getFullYear();
+      const localMonth = String(fullDate.getMonth() + 1).padStart(2, '0');
+      const localDay = String(fullDate.getDate()).padStart(2, '0');
+      const localHours = String(fullDate.getHours()).padStart(2, '0');
+      const localMinutes = String(fullDate.getMinutes()).padStart(2, '0');
+      const localDateTimeString = `${localYear}-${localMonth}-${localDay}T${localHours}:${localMinutes}:00`;
+
       setSelectedTime(time);
-      setAppointmentDate(fullDate.toISOString().slice(0, 16));
+      // Send local time string - will be stored as-is in MongoDB (Vietnam time)
+      setAppointmentDate(localDateTimeString);
       setStep(4);
     }
   };
@@ -222,23 +243,17 @@ function AppointmentsPage() {
     setBookingLoading(true);
 
     try {
-      await appointmentAPI.createAppointment({
+      const response = await appointmentAPI.createAppointment({
         barberId: selectedBarber,
         serviceId: selectedService,
         appointmentDate,
         notes,
       });
 
-      // Reset form
-      setStep(1);
-      setSelectedService(null);
-      setSelectedBarber(null);
-      setAppointmentDate("");
-      setSelectedTime("");
-      setSelectedDateOnly(null);
-      setNotes("");
-      setCurrentMonth(new Date());
-      fetchAppointments();
+      // Navigate to confirmation page with appointment data
+      navigate("/appointment-confirmation", {
+        state: { appointment: response.data.appointment },
+      });
     } catch (err) {
       setBookingError(
         err.response?.data?.message || "Failed to book appointment"
@@ -354,7 +369,7 @@ function AppointmentsPage() {
                               {service.name}
                             </p>
                             <p className="text-white/60 text-sm">
-                              {service.duration} min - ${service.price}
+                              {Number(service.price).toLocaleString('vi-VN')} VND
                             </p>
                             <p className="text-white/60 text-sm pt-1">
                               {service.description || "Professional service"}
@@ -568,8 +583,7 @@ function AppointmentsPage() {
                             {currentService.name}
                           </p>
                           <p className="text-xs text-white/60">
-                            {currentService.duration} min • $
-                            {currentService.price}
+                            {Number(currentService.price).toLocaleString('vi-VN')} VND
                           </p>
                         </div>
                       </div>
@@ -639,7 +653,7 @@ function AppointmentsPage() {
                       <div className="flex justify-between items-baseline">
                         <span className="text-white/60">Total Amount</span>
                         <span className="text-3xl font-bold text-white">
-                          ${currentService?.price || "0.00"}
+                          {Number(currentService?.price || 0).toLocaleString('vi-VN')} VND
                         </span>
                       </div>
                       <p className="text-[10px] text-white/40 text-center">
@@ -713,7 +727,7 @@ function AppointmentsPage() {
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-black focus:outline-none focus:border-blue-500"
                     >
                       <option value="all">All Statuses</option>
                       <option value="pending">Pending</option>
@@ -731,7 +745,7 @@ function AppointmentsPage() {
                     <select
                       value={filterService}
                       onChange={(e) => setFilterService(e.target.value)}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-black focus:outline-none focus:border-blue-500"
                     >
                       <option value="all">All Services</option>
                       {services.map((service) => (
@@ -750,7 +764,7 @@ function AppointmentsPage() {
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-black focus:outline-none focus:border-blue-500"
                     >
                       <option value="date-desc">Newest First</option>
                       <option value="date-asc">Oldest First</option>
