@@ -149,7 +149,8 @@ exports.handleIPN = async (req, res) => {
         delete vnpParams['vnp_SecureHash'];
         delete vnpParams['vnp_SecureHashType'];
 
-        const hashSecret = process.env.VNPAY_HASH_SECRET || "XNMCOIZCDYJTTAVMSIUBYFVMNCOYFCCO";
+        const hashSecret = process.env.VNPAY_HASH_SECRET;
+        if (!hashSecret) return res.status(200).json({ RspCode: '99', Message: 'Missing Hash Secret config' });
 
         vnpParams = sortObject(vnpParams);
         const signData = qs.stringify(vnpParams, { encode: false });
@@ -160,15 +161,29 @@ exports.handleIPN = async (req, res) => {
         if (secureHash === signed) {
             const txnRef = vnpParams['vnp_TxnRef'];
             const responseCode = vnpParams['vnp_ResponseCode'];
+            const vnpAmount = vnpParams['vnp_Amount'];
 
             const appt = await Appointment.findOne({ appointmentId: txnRef });
+
+            // 1. Check if order exists
             if (!appt) return res.status(200).json({ RspCode: '01', Message: 'Order not found' });
+
+            // 2. Check amount
+            const expectedAmount = Math.round(appt.totalPrice) * 100;
+            if (expectedAmount.toString() !== vnpAmount.toString()) {
+                return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
+            }
+
+            // 3. Check order status
             if (appt.paymentStatus === 'paid') return res.status(200).json({ RspCode: '02', Message: 'Order already confirmed' });
 
-            if (responseCode === "00") {
+            if (responseCode === "00" || responseCode === "07") {
                 await Appointment.findOneAndUpdate({ appointmentId: txnRef }, { paymentStatus: "paid" });
+                return res.status(200).json({ RspCode: '00', Message: 'Confirm Success' });
+            } else {
+                // Payment failed, you might want to update status to "failed" here depending on your logic
+                return res.status(200).json({ RspCode: '00', Message: 'Success (Payment failed)' });
             }
-            return res.status(200).json({ RspCode: '00', Message: 'Success' });
         } else {
             return res.status(200).json({ RspCode: '97', Message: 'Invalid Checksum' });
         }
