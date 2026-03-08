@@ -7,6 +7,7 @@ import AppointmentConfirmation from "./pages/AppointmentConfirmation";
 import Dashboard from "./pages/Dashboard";
 import QRScanner from "./pages/QRScanner";
 import ProfilePage from "./pages/ProfilePage";
+import PaymentPage from "./pages/PaymentPage";
 import "./App.css";
 
 function ProtectedRoute({ children }) {
@@ -50,6 +51,14 @@ function App() {
           element={
             <ProtectedRoute>
               <QRScanner />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment"
+          element={
+            <ProtectedRoute>
+              <PaymentPage />
             </ProtectedRoute>
           }
         />

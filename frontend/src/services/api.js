@@ -33,6 +33,7 @@ export const appointmentAPI = {
   updateAppointment: (id, data) => api.put(`/appointments/${id}`, data),
   cancelAppointment: (id) => api.delete(`/appointments/${id}`),
   scanQRCode: (data) => api.post("/appointments/scan-qr", data),
+  getAvailableSlots: (params) => api.get("/appointments/available-slots", { params }),
 };
 
 // Service API
@@ -48,6 +49,11 @@ export const serviceAPI = {
 export const lookbookAPI = {
   getLookbook: () => api.get("/lookbook"),
   createLookbook: (data) => api.post("/lookbook", data),
+};
+
+// Payment API
+export const paymentAPI = {
+  createPayment: (data) => api.post("/payment/create", data),
 };
 
 export default api;

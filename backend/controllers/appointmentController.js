@@ -3,43 +3,52 @@ const Service = require("../models/Service");
 const QRCode = require("../models/QRCode");
 const QRCodeLib = require("qrcode");
 
-// Helper function to check if a time slot is available
 const checkAvailability = async (barberId, appointmentDate, duration) => {
-  const requestedStart = new Date(appointmentDate);
-  const requestedEnd = new Date(requestedStart.getTime() + duration * 60000);
+  try {
+    const requestedStart = new Date(appointmentDate);
+    if (isNaN(requestedStart.getTime())) return { available: false, error: "Invalid start date" };
 
-  // Find all non-cancelled appointments for this barber on the same day
-  const startOfDay = new Date(requestedStart);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(requestedStart);
-  endOfDay.setHours(23, 59, 59, 999);
+    requestedStart.setSeconds(0, 0);
+    const safeDuration = duration || 30;
+    const requestedEnd = new Date(requestedStart.getTime() + safeDuration * 60000);
 
-  const existingAppointments = await Appointment.find({
-    barberId,
-    appointmentDate: {
-      $gte: startOfDay,
-      $lte: endOfDay,
-    },
-    status: { $nin: ["cancelled"] }, // Exclude cancelled appointments
-  });
+    // Query: find any non-cancelled appointment for this barber
+    const startOfDay = new Date(requestedStart);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(requestedStart);
+    endOfDay.setHours(23, 59, 59, 999);
 
-  // Check for overlapping appointments
-  for (const appointment of existingAppointments) {
-    const existingStart = new Date(appointment.appointmentDate);
-    const existingEnd = new Date(
-      existingStart.getTime() + appointment.duration * 60000
-    );
+    const existingAppointments = await Appointment.find({
+      barberId: barberId,
+      appointmentDate: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+      status: { $nin: ["cancelled"] },
+    });
 
-    // Check if there's any overlap
-    if (requestedStart < existingEnd && requestedEnd > existingStart) {
-      return {
-        available: false,
-        conflictingAppointment: appointment,
-      };
+    for (const appointment of existingAppointments) {
+      const existingStart = new Date(appointment.appointmentDate);
+      if (isNaN(existingStart.getTime())) continue; // Skip invalid dates in DB
+
+      existingStart.setSeconds(0, 0);
+      const apptDuration = appointment.duration || 30; // fallback 30 min
+      const existingEnd = new Date(existingStart.getTime() + apptDuration * 60000);
+
+      // Check overlap: (StartA < EndB) AND (EndA > StartB)
+      if (requestedStart < existingEnd && requestedEnd > existingStart) {
+        return {
+          available: false,
+          conflictingAppointment: appointment,
+        };
+      }
     }
-  }
 
-  return { available: true };
+    return { available: true };
+  } catch (err) {
+    console.error("[checkAvailability] Error:", err.message);
+    return { available: false, error: err.message };
+  }
 };
 
 // Create appointment
@@ -48,13 +57,18 @@ exports.createAppointment = async (req, res) => {
     const { barberId, serviceId, appointmentDate, notes } = req.body;
     const customerId = req.user.id;
 
+    // Check if appointment date is in the past
+    if (new Date(appointmentDate) < new Date()) {
+      return res.status(400).json({ message: "Cannot book an appointment in the past" });
+    }
+
     // Get service details
     const service = await Service.findById(serviceId);
     if (!service) {
       return res.status(404).json({ message: "Service not found" });
     }
 
-    // Check availability before creating appointment
+    // Check availability before creating appointment (Step C: Server-side check)
     const availabilityCheck = await checkAvailability(
       barberId,
       appointmentDate,
@@ -62,8 +76,8 @@ exports.createAppointment = async (req, res) => {
     );
 
     if (!availabilityCheck.available) {
-      return res.status(409).json({
-        message: "This time slot is not available",
+      return res.status(400).json({
+        message: "Barber đã có lịch vào giờ này (Hệ thống vừa cập nhật)",
         conflictingAppointment: availabilityCheck.conflictingAppointment,
       });
     }
@@ -246,56 +260,63 @@ exports.getAvailableTimeSlots = async (req, res) => {
       return res.status(404).json({ message: "Service not found" });
     }
 
-    // Define business hours (you can customize these)
-    const businessHours = {
-      start: 9, // 9 AM
-      end: 18, // 6 PM
-    };
+    // Step A: Parse YYYY-MM-DD as LOCAL date (not UTC)
+    const [year, month, day] = date.split("-").map(Number);
+    const selectedDate = new Date(year, month - 1, day); // Local midnight
 
-    const slotDuration = 30; // 30-minute slots
-    const selectedDate = new Date(date);
-    selectedDate.setHours(0, 0, 0, 0);
+    console.log("[getAvailableTimeSlots] Received date:", date, "-> parsed:", selectedDate.toString());
+    console.log("[getAvailableTimeSlots] barberId:", barberId, "serviceId:", serviceId);
+    console.log("[getAvailableTimeSlots] service duration:", service.duration, "minutes");
 
-    // Generate all possible time slots
-    const allSlots = [];
-    for (
-      let hour = businessHours.start;
-      hour < businessHours.end;
-      hour++
-    ) {
+    const businessHours = { start: 9, end: 18 };
+    const slotDuration = 45; // minutes - matching original slot intervals
+
+    const now = new Date();
+    console.log("[getAvailableTimeSlots] Current time:", now.toString());
+
+    const allTimeSlots = [];
+    for (let hour = businessHours.start; hour < businessHours.end; hour++) {
       for (let minute = 0; minute < 60; minute += slotDuration) {
-        const slotTime = new Date(selectedDate);
-        slotTime.setHours(hour, minute, 0, 0);
-        allSlots.push(slotTime);
+        const slotTime = new Date(year, month - 1, day, hour, minute, 0, 0);
+        allTimeSlots.push(slotTime);
       }
     }
 
-    // Check availability for each slot
+    console.log("[getAvailableTimeSlots] Generated", allTimeSlots.length, "total slots");
+
     const availableSlots = [];
-    for (const slot of allSlots) {
-      const availability = await checkAvailability(
-        barberId,
-        slot,
-        service.duration
-      );
+    for (const slot of allTimeSlots) {
+      const isPast = slot <= now;
+      let isAvailable = true;
 
-      if (availability.available) {
-        availableSlots.push({
-          time: slot,
-          formattedTime: slot.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          }),
-        });
+      console.log(`[getAvailableTimeSlots] processing slot ${slot.toISOString()}, isPast: ${isPast}`);
+
+      if (!isPast) {
+        const availability = await checkAvailability(barberId, slot, service.duration);
+        isAvailable = availability.available;
+      } else {
+        isAvailable = false; // Past slots are not available
       }
+
+      availableSlots.push({
+        time: slot,
+        formattedTime: slot.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }),
+        isAvailable: isAvailable,
+        isPast: isPast
+      });
     }
+
+    const availableCount = availableSlots.filter(s => s.isAvailable).length;
+    console.log("[getAvailableTimeSlots] Result:", availableSlots.length, "total,", availableCount, "available");
 
     res.status(200).json({
       date: selectedDate,
       barberId,
       serviceId,
-      serviceDuration: service.duration,
       availableSlots,
     });
   } catch (error) {

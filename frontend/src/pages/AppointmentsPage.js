@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { appointmentAPI, serviceAPI, authAPI } from "../services/api";
 import Header from "../components/Header";
+import { motion, AnimatePresence } from "framer-motion";
 
 function AppointmentsPage() {
   const [user, setUser] = useState(null);
@@ -29,6 +30,8 @@ function AppointmentsPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDateOnly, setSelectedDateOnly] = useState(null);
   const [barbers, setBarbers] = useState([]);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -134,6 +137,37 @@ function AppointmentsPage() {
     setFilteredAppointments(filtered);
   };
 
+  useEffect(() => {
+    if (selectedDateOnly && selectedBarber && selectedService) {
+      fetchAvailableSlots();
+    }
+  }, [selectedDateOnly, selectedBarber, selectedService]);
+
+  const fetchAvailableSlots = async () => {
+    setSlotsLoading(true);
+    try {
+      // Send date as YYYY-MM-DD to avoid UTC conversion issues
+      const y = selectedDateOnly.getFullYear();
+      const m = String(selectedDateOnly.getMonth() + 1).padStart(2, '0');
+      const d = String(selectedDateOnly.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
+
+      const response = await appointmentAPI.getAvailableSlots({
+        barberId: selectedBarber,
+        date: dateStr,
+        serviceId: selectedService
+      });
+
+      const slots = response.data.availableSlots || [];
+      setAvailableSlots(slots);
+    } catch (err) {
+      console.error("Error fetching available slots:", err);
+      setAvailableSlots([]);
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
   // Calendar helper functions
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -182,23 +216,13 @@ function AppointmentsPage() {
     return days;
   };
 
-  const getAvailableTimeSlots = () => {
-    return [
-      "09:00 AM",
-      "09:45 AM",
-      "10:30 AM",
-      "11:15 AM",
-      "01:30 PM",
-      "02:15 PM",
-      "03:00 PM",
-      "03:45 PM",
-      "04:30 PM",
-    ];
-  };
+
 
   const handleDateSelect = (date) => {
     setSelectedDateOnly(date);
     setStep(3.5);
+    setAvailableSlots([]);
+    setSelectedTime("");
   };
 
   const handleTimeSelect = (time) => {
@@ -222,17 +246,12 @@ function AppointmentsPage() {
       // Create a fresh date object with the selected date and time in local timezone
       const fullDate = new Date(year, month, day, adjustedHours, minutes, 0, 0);
 
-      // Format as local datetime string (YYYY-MM-DDTHH:mm:ss) without UTC conversion
-      const localYear = fullDate.getFullYear();
-      const localMonth = String(fullDate.getMonth() + 1).padStart(2, '0');
-      const localDay = String(fullDate.getDate()).padStart(2, '0');
-      const localHours = String(fullDate.getHours()).padStart(2, '0');
-      const localMinutes = String(fullDate.getMinutes()).padStart(2, '0');
-      const localDateTimeString = `${localYear}-${localMonth}-${localDay}T${localHours}:${localMinutes}:00`;
+      // Convert to ISO string (UTC) for storage in MongoDB
+      const utcDateString = fullDate.toISOString();
 
       setSelectedTime(time);
-      // Send local time string - will be stored as-is in MongoDB (Vietnam time)
-      setAppointmentDate(localDateTimeString);
+      // Send UTC string - will be stored as UTC in MongoDB
+      setAppointmentDate(utcDateString);
       setStep(4);
     }
   };
@@ -340,17 +359,27 @@ function AppointmentsPage() {
                     <h2 className="text-2xl font-bold font-heading pb-4">
                       Select a Service
                     </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {services.map((service) => (
-                        <div
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                    >
+                      {services.map((service, index) => (
+                        <motion.div
                           key={service._id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.1 }}
+                          whileHover={{ scale: 1.05, y: -5 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => {
                             setSelectedService(service._id);
                             setStep(2);
                           }}
-                          className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2 ${selectedService === service._id
-                            ? "border-blue-500 bg-blue-500/10"
-                            : "border-transparent bg-white/5 hover:border-white/20"
+                          className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2 shadow-lg ${selectedService === service._id
+                            ? "border-blue-500 bg-blue-500/20 shadow-blue-500/20"
+                            : "border-transparent bg-white/5 hover:border-white/20 hover:bg-white/10"
                             }`}
                         >
                           <div className="w-full aspect-square bg-gradient-to-br from-blue-600 to-cyan-600 rounded-md flex items-center justify-center overflow-hidden">
@@ -375,9 +404,9 @@ function AppointmentsPage() {
                               {service.description || "Professional service"}
                             </p>
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
-                    </div>
+                    </motion.div>
                   </section>
 
                   {/* Step 2: Choose Barber */}
@@ -386,17 +415,26 @@ function AppointmentsPage() {
                       <h2 className="text-2xl font-bold font-heading pb-4">
                         Choose Your Barber
                       </h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {barbers.map((barber) => (
-                          <div
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                      >
+                        {barbers.map((barber, index) => (
+                          <motion.div
                             key={barber._id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            whileHover={{ scale: 1.05, rotate: 1 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => {
                               setSelectedBarber(barber._id);
                               setStep(3);
                             }}
-                            className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2 ${selectedBarber === barber._id
-                              ? "border-blue-500 bg-blue-500/10"
-                              : "border-transparent bg-white/5 hover:border-white/20"
+                            className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2 shadow-lg ${selectedBarber === barber._id
+                              ? "border-blue-500 bg-blue-500/20 shadow-blue-500/20"
+                              : "border-transparent bg-white/5 hover:border-white/20 hover:bg-white/10"
                               }`}
                           >
                             <div className="w-full aspect-square bg-gradient-to-br from-purple-600 to-pink-600 rounded-md flex items-center justify-center overflow-hidden">
@@ -417,15 +455,19 @@ function AppointmentsPage() {
                                 {barber.specialty}
                               </p>
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
-                        <div className="flex flex-col items-center justify-center gap-3 p-4 rounded-lg border-2 border-dashed border-white/20 bg-transparent cursor-pointer transition-all hover:border-white/40 hover:text-white/80 text-white/60">
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="flex flex-col items-center justify-center gap-3 p-4 rounded-lg border-2 border-dashed border-white/20 bg-transparent cursor-pointer transition-all hover:border-white/40 hover:text-white/80 text-white/60"
+                        >
                           <span className="text-4xl">👥</span>
                           <p className="text-base font-bold text-center">
                             Any Available
                           </p>
-                        </div>
-                      </div>
+                        </motion.div>
+                      </motion.div>
                     </section>
                   )}
 
@@ -488,11 +530,15 @@ function AppointmentsPage() {
                                 key={idx}
                                 onClick={() => {
                                   if (dayObj.isCurrentMonth && dayObj.date) {
-                                    handleDateSelect(dayObj.date);
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+                                    if (dayObj.date >= today) {
+                                      handleDateSelect(dayObj.date);
+                                    }
                                   }
                                 }}
-                                disabled={!dayObj.isCurrentMonth}
-                                className={`aspect-square flex items-center justify-center rounded-lg font-medium transition-all ${!dayObj.isCurrentMonth
+                                disabled={!dayObj.isCurrentMonth || (dayObj.date && dayObj.date < new Date().setHours(0, 0, 0, 0))}
+                                className={`aspect-square flex items-center justify-center rounded-lg font-medium transition-all ${!dayObj.isCurrentMonth || (dayObj.date && dayObj.date < new Date().setHours(0, 0, 0, 0))
                                   ? "text-white/20 cursor-default"
                                   : selectedDateOnly &&
                                     selectedDateOnly.toDateString() ===
@@ -520,20 +566,38 @@ function AppointmentsPage() {
                             })}
                             )
                           </h3>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                            {getAvailableTimeSlots().map((time) => (
-                              <button
-                                key={time}
-                                onClick={() => handleTimeSelect(time)}
-                                className={`py-3 px-4 rounded-lg font-medium text-sm transition-all ${selectedTime === time
-                                  ? "border-2 border-blue-600 bg-blue-600/20 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]"
-                                  : "border border-white/10 bg-white/5 text-white hover:border-blue-600 hover:bg-blue-600/10"
-                                  }`}
-                              >
-                                {time}
-                              </button>
-                            ))}
-                          </div>
+                          {slotsLoading ? (
+                            <div className="flex justify-center py-8">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                            </div>
+                          ) : availableSlots.length === 0 ? (
+                            <div className="bg-white/5 border border-white/10 rounded-lg p-8 text-center">
+                              <p className="text-white/60">No available slots for this date. Please try another day.</p>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                              {availableSlots.map((slot) => {
+                                const isBooked = !slot.isAvailable;
+
+                                return (
+                                  <button
+                                    key={slot.formattedTime}
+                                    onClick={() => !isBooked && handleTimeSelect(slot.formattedTime)}
+                                    disabled={isBooked}
+                                    className={`py-3 px-4 rounded-lg font-medium text-sm transition-all ${selectedTime === slot.formattedTime
+                                      ? "border-2 border-blue-600 bg-blue-600/20 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                                      : isBooked
+                                        ? "border border-white/5 bg-white/5 text-white/20 cursor-not-allowed line-through"
+                                        : "border border-white/10 bg-white/5 text-white hover:border-blue-600 hover:bg-blue-600/10"
+                                      }`}
+                                  >
+                                    {slot.formattedTime}
+                                    {isBooked && <span className="block text-[8px] mt-1 opacity-60">BOOKED</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </section>
                       )}
                     </>
@@ -888,7 +952,7 @@ function AppointmentsPage() {
             </>
           )}
         </div>
-      </main>
+      </main >
     </div >
   );
 }

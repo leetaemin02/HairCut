@@ -522,6 +522,23 @@ function ProfilePage() {
                                                         View Details
                                                     </button>
 
+                                                    {/* Pay Now Button - Only for confirmed & unpaid appointments */}
+                                                    {appointment.status === "confirmed" && appointment.paymentStatus !== "paid" && (
+                                                        <button
+                                                            onClick={() => navigate("/payment", { state: { appointment } })}
+                                                            className="w-full px-4 py-2 font-bold text-sm text-white rounded-lg transition-all hover:scale-105 hover:shadow-lg hover:shadow-blue-500/40 active:scale-95 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                                                        >
+                                                            💳 Thanh toán VNPAY
+                                                        </button>
+                                                    )}
+
+                                                    {/* Paid badge */}
+                                                    {appointment.paymentStatus === "paid" && (
+                                                        <div className="w-full px-4 py-2 text-center text-xs font-bold rounded-lg bg-green-500/20 border border-green-500/30 text-green-300">
+                                                            ✓ Đã thanh toán
+                                                        </div>
+                                                    )}
+
                                                     {/* Cancel Button - Only for upcoming appointments */}
                                                     {appointment.status !== "cancelled" &&
                                                         appointment.status !== "completed" && (
