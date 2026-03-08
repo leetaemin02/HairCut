@@ -3,12 +3,19 @@ const qs = require("qs");
 const Appointment = require("../models/Appointment");
 
 // Chuẩn hóa hàm sortObject theo đúng tài liệu VNPAY
-// Chuẩn hóa hàm sortObject chuẩn nhất (Không tự encode để tránh double-encode với qs)
+// Chuẩn hóa hàm sortObject theo đúng tài liệu VNPAY
 function sortObject(obj) {
     let sorted = {};
-    let str = Object.keys(obj).sort();
-    for (let key of str) {
-        sorted[key] = obj[key];
+    let str = [];
+    let key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            str.push(encodeURIComponent(key));
+        }
+    }
+    str.sort();
+    for (key = 0; key < str.length; key++) {
+        sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
     }
     return sorted;
 }
@@ -96,7 +103,7 @@ exports.createPayment = async (req, res) => {
         vnpParams['vnp_SecureHash'] = signed;
 
         // 4. Encode Final URL
-        const paymentUrl = url + '?' + qs.stringify(vnpParams, { encode: true });
+        const paymentUrl = url + '?' + qs.stringify(vnpParams, { encode: false });
 
         res.status(200).json({ payUrl: paymentUrl });
     } catch (error) {
