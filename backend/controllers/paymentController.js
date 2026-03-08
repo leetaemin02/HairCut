@@ -3,23 +3,17 @@ const qs = require("qs");
 const Appointment = require("../models/Appointment");
 
 // Chuẩn hóa hàm sortObject theo đúng tài liệu VNPAY
+// Standardized sortObject per VNPAY 2.1.0 requirements
 function sortObject(obj) {
     let sorted = {};
-    let str = [];
-    let key;
-    for (key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            str.push(encodeURIComponent(key));
-        }
-    }
-    str.sort();
-    for (key = 0; key < str.length; key++) {
-        sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+    let str = Object.keys(obj).sort();
+    for (let key of str) {
+        sorted[key] = obj[key];
     }
     return sorted;
 }
 
-// Hàm format giờ Việt Nam (GMT+7)
+// Function to format Vietnam time (GMT+7)
 function formatVNTime(date) {
     const pad = (n) => (n < 10 ? '0' + n : n);
     return date.getFullYear().toString() +
@@ -39,24 +33,21 @@ exports.createPayment = async (req, res) => {
         if (appointment.status !== "confirmed") return res.status(400).json({ message: "Only confirmed appointments can be paid." });
         if (appointment.paymentStatus === "paid") return res.status(400).json({ message: "Appointment is already paid." });
 
-        // Lấy config và xóa khoảng trắng thừa nếu có
-        const tmnCode = process.env.VNPAY_TMN_CODE ? process.env.VNPAY_TMN_CODE.trim() : "CGWBKPGS";
-        const hashSecret = process.env.VNPAY_HASH_SECRET ? process.env.VNPAY_HASH_SECRET.trim() : "KEKZSKSYODAHEUCVJXOBHPKZTWHEJWCH";
-        const returnUrl = process.env.VNPAY_RETURN_URL ? process.env.VNPAY_RETURN_URL.trim() : "http://localhost:5000/api/payment/vnpay-return";
+        // Retrieve config from environment variables (Required for Vercel)
+        const tmnCode = process.env.VNPAY_TMN_CODE;
+        const hashSecret = process.env.VNPAY_HASH_SECRET;
+        const returnUrl = process.env.VNPAY_RETURN_URL;
         const url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
-        // Ghi Log để debug xem biến môi trường có nhận đúng không
-        console.log("============= VNPAY DEBUG ==============");
-        console.log("1. TMN_CODE:", tmnCode);
-        console.log("2. HASH_SECRET:", hashSecret);
-        if (hashSecret !== "G6CCZXX8J037N9WD2RHNVUX7Q785UUVN") {
-            console.log("⚠️ CẢNH BÁO: Hash Secret đang không giống với file .env của bạn!");
+        if (!tmnCode || !hashSecret || !returnUrl) {
+            console.error("❌ VNPAY Configuration missing!");
+            return res.status(500).json({ message: "VNPAY integration is not configured on this server." });
         }
 
         const amount = Math.round(appointment.totalPrice) * 100;
         const txnRef = appointment.appointmentId;
 
-        // Xử lý múi giờ GMT+7 (Chuẩn VNPAY)
+        // GMT+7 Time handling
         const date = new Date();
         const vnOffset = 7 * 60 * 60 * 1000;
         const localOffset = date.getTimezoneOffset() * 60000;
@@ -69,36 +60,35 @@ exports.createPayment = async (req, res) => {
         let vnpParams = {
             'vnp_Version': '2.1.0',
             'vnp_Command': 'pay',
-            'vnp_TmnCode': tmnCode,
+            'vnp_TmnCode': tmnCode.trim(),
             'vnp_Locale': 'vn',
             'vnp_CurrCode': 'VND',
             'vnp_TxnRef': txnRef,
             'vnp_OrderInfo': 'Thanh toan don hang ' + txnRef,
             'vnp_OrderType': 'other',
             'vnp_Amount': amount,
-            'vnp_ReturnUrl': returnUrl,
+            'vnp_ReturnUrl': returnUrl.trim(),
             'vnp_IpAddr': req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
             'vnp_CreateDate': createDate,
             'vnp_ExpireDate': expireDate
         };
 
+        // 1. Sort objects correctly
         vnpParams = sortObject(vnpParams);
 
-        // Tạo chuỗi signData bằng thư viện qs
+        // 2. Generate sign data (NO encoding)
         const signData = qs.stringify(vnpParams, { encode: false });
 
-        console.log("3. Chuỗi signData:", signData);
-
-        // Tạo mã băm
-        const hmac = crypto.createHmac("sha512", hashSecret);
+        // 3. Generate Secure Hash
+        const hmac = crypto.createHmac("sha512", hashSecret.trim());
         const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
 
-        console.log("4. Chữ ký tạo ra (SecureHash):", signed);
-        console.log("========================================");
-
         vnpParams['vnp_SecureHash'] = signed;
-        const paymentUrl = url + '?' + qs.stringify(vnpParams, { encode: false });
 
+        // 4. Generate Final URL (WITH encoding)
+        const paymentUrl = url + '?' + qs.stringify(vnpParams, { encode: true });
+
+        console.log("✅ VNPAY Link created successfully for", txnRef);
         res.status(200).json({ payUrl: paymentUrl });
     } catch (error) {
         console.error("[VNPAY createPayment Error]:", error);
@@ -115,12 +105,13 @@ exports.handleReturn = async (req, res) => {
         delete vnpParams['vnp_SecureHash'];
         delete vnpParams['vnp_SecureHashType'];
 
-        const hashSecret = (process.env.VNPAY_HASH_SECRET || "KEKZSKSYODAHEUCVJXOBHPKZTWHEJWCH").trim();
+        const hashSecret = process.env.VNPAY_HASH_SECRET;
+        if (!hashSecret) throw new Error("VNPAY_HASH_SECRET is missing");
 
         vnpParams = sortObject(vnpParams);
         const signData = qs.stringify(vnpParams, { encode: false });
 
-        const hmac = crypto.createHmac("sha512", hashSecret);
+        const hmac = crypto.createHmac("sha512", hashSecret.trim());
         const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
 
         const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
@@ -136,6 +127,7 @@ exports.handleReturn = async (req, res) => {
                 return res.redirect(`${frontendUrl}/profile?payment=failed&code=${responseCode}`);
             }
         } else {
+            console.error("❌ Invalid VNPAY Checksum in return URL");
             return res.redirect(`${frontendUrl}/profile?payment=invalid`);
         }
     } catch (error) {
@@ -153,12 +145,13 @@ exports.handleIPN = async (req, res) => {
         delete vnpParams['vnp_SecureHash'];
         delete vnpParams['vnp_SecureHashType'];
 
-        const hashSecret = (process.env.VNPAY_HASH_SECRET || "KEKZSKSYODAHEUCVJXOBHPKZTWHEJWCH").trim();
+        const hashSecret = process.env.VNPAY_HASH_SECRET;
+        if (!hashSecret) throw new Error("VNPAY_HASH_SECRET is missing");
 
         vnpParams = sortObject(vnpParams);
         const signData = qs.stringify(vnpParams, { encode: false });
 
-        const hmac = crypto.createHmac("sha512", hashSecret);
+        const hmac = crypto.createHmac("sha512", hashSecret.trim());
         const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
 
         if (secureHash === signed) {
@@ -171,10 +164,8 @@ exports.handleIPN = async (req, res) => {
 
             if (responseCode === "00") {
                 await Appointment.findOneAndUpdate({ appointmentId: txnRef }, { paymentStatus: "paid" });
-                return res.status(200).json({ RspCode: '00', Message: 'Confirm Success' });
-            } else {
-                return res.status(200).json({ RspCode: '00', Message: 'Confirm Success' });
             }
+            return res.status(200).json({ RspCode: '00', Message: 'Success' });
         } else {
             return res.status(200).json({ RspCode: '97', Message: 'Invalid Checksum' });
         }
