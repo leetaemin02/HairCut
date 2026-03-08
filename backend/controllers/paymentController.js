@@ -33,16 +33,23 @@ exports.createPayment = async (req, res) => {
         if (appointment.status !== "confirmed") return res.status(400).json({ message: "Only confirmed appointments can be paid." });
         if (appointment.paymentStatus === "paid") return res.status(400).json({ message: "Appointment is already paid." });
 
-        // Retrieve config from environment variables (Required for Vercel)
-        const tmnCode = process.env.VNPAY_TMN_CODE;
-        const hashSecret = process.env.VNPAY_HASH_SECRET;
-        const returnUrl = process.env.VNPAY_RETURN_URL;
+        // AUTOMATIC CONFIGURATION DETECTION
+        // Use environment variables if set, otherwise fallback to VNPAY test accounts
+        const tmnCode = process.env.VNPAY_TMN_CODE || "CPY02998";
+        const hashSecret = process.env.VNPAY_HASH_SECRET || "XNMCOIZCDYJTTAVMSIUBYFVMNCOYFCCO";
+
+        // Auto-detect return URL if not set or if it points to localhost in production
+        let returnUrl = process.env.VNPAY_RETURN_URL;
+        const currentHost = req.headers.host; // e.g., hair-cut-backend.vercel.app
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+
+        if (!returnUrl || returnUrl.includes('localhost')) {
+            returnUrl = `${protocol}://${currentHost}/api/payment/vnpay-return`;
+        }
+
         const url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
-        if (!tmnCode || !hashSecret || !returnUrl) {
-            console.error("❌ VNPAY Configuration missing!");
-            return res.status(500).json({ message: "VNPAY integration is not configured on this server." });
-        }
+        console.log("VNPAY Config Used:", { tmnCode, returnUrl, detectedHost: currentHost });
 
         const amount = Math.round(appointment.totalPrice) * 100;
         const txnRef = appointment.appointmentId;
@@ -88,11 +95,10 @@ exports.createPayment = async (req, res) => {
         // 4. Generate Final URL (WITH encoding)
         const paymentUrl = url + '?' + qs.stringify(vnpParams, { encode: true });
 
-        console.log("✅ VNPAY Link created successfully for", txnRef);
         res.status(200).json({ payUrl: paymentUrl });
     } catch (error) {
         console.error("[VNPAY createPayment Error]:", error);
-        res.status(500).json({ message: "Server error during payment creation" });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
@@ -105,8 +111,7 @@ exports.handleReturn = async (req, res) => {
         delete vnpParams['vnp_SecureHash'];
         delete vnpParams['vnp_SecureHashType'];
 
-        const hashSecret = process.env.VNPAY_HASH_SECRET;
-        if (!hashSecret) throw new Error("VNPAY_HASH_SECRET is missing");
+        const hashSecret = process.env.VNPAY_HASH_SECRET || "XNMCOIZCDYJTTAVMSIUBYFVMNCOYFCCO";
 
         vnpParams = sortObject(vnpParams);
         const signData = qs.stringify(vnpParams, { encode: false });
@@ -127,7 +132,6 @@ exports.handleReturn = async (req, res) => {
                 return res.redirect(`${frontendUrl}/profile?payment=failed&code=${responseCode}`);
             }
         } else {
-            console.error("❌ Invalid VNPAY Checksum in return URL");
             return res.redirect(`${frontendUrl}/profile?payment=invalid`);
         }
     } catch (error) {
@@ -145,8 +149,7 @@ exports.handleIPN = async (req, res) => {
         delete vnpParams['vnp_SecureHash'];
         delete vnpParams['vnp_SecureHashType'];
 
-        const hashSecret = process.env.VNPAY_HASH_SECRET;
-        if (!hashSecret) throw new Error("VNPAY_HASH_SECRET is missing");
+        const hashSecret = process.env.VNPAY_HASH_SECRET || "XNMCOIZCDYJTTAVMSIUBYFVMNCOYFCCO";
 
         vnpParams = sortObject(vnpParams);
         const signData = qs.stringify(vnpParams, { encode: false });
