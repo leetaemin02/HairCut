@@ -3,19 +3,12 @@ const qs = require("qs");
 const Appointment = require("../models/Appointment");
 
 // Chuẩn hóa hàm sortObject theo đúng tài liệu VNPAY
-// Standardized sortObject per VNPAY 2.1.0 requirements
+// Chuẩn hóa hàm sortObject chuẩn nhất (Không tự encode để tránh double-encode với qs)
 function sortObject(obj) {
     let sorted = {};
-    let str = [];
-    let key;
-    for (key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            str.push(encodeURIComponent(key));
-        }
-    }
-    str.sort();
-    for (key = 0; key < str.length; key++) {
-        sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+    let str = Object.keys(obj).sort();
+    for (let key of str) {
+        sorted[key] = obj[key];
     }
     return sorted;
 }
@@ -40,14 +33,12 @@ exports.createPayment = async (req, res) => {
         if (appointment.status !== "confirmed") return res.status(400).json({ message: "Only confirmed appointments can be paid." });
         if (appointment.paymentStatus === "paid") return res.status(400).json({ message: "Appointment is already paid." });
 
-        // AUTOMATIC CONFIGURATION DETECTION
-        // Use environment variables if set, otherwise fallback to VNPAY test accounts
+        // Retrieve config from env
         const tmnCode = process.env.VNPAY_TMN_CODE || "CPY02998";
         const hashSecret = process.env.VNPAY_HASH_SECRET || "XNMCOIZCDYJTTAVMSIUBYFVMNCOYFCCO";
 
-        // Auto-detect return URL if not set or if it points to localhost in production
         let returnUrl = process.env.VNPAY_RETURN_URL;
-        const currentHost = req.headers.host; // e.g., hair-cut-backend.vercel.app
+        const currentHost = req.headers.host;
         const protocol = req.headers['x-forwarded-proto'] || 'http';
 
         if (!returnUrl || returnUrl.includes('localhost')) {
@@ -56,10 +47,15 @@ exports.createPayment = async (req, res) => {
 
         const url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
-        console.log("VNPAY Config Used:", { tmnCode, returnUrl, detectedHost: currentHost });
-
         const amount = Math.floor(appointment.totalPrice * 100);
         const txnRef = appointment.appointmentId;
+
+        // Xử lý IP từ Vercel (rất quan trọng để tránh lỗi 70)
+        // Vercel trả về chuỗi IP dạng: "IP_client, IP_proxy" -> Phải cắt lấy IP đầu tiên
+        let ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+        if (typeof ipAddr === 'string' && ipAddr.includes(',')) {
+            ipAddr = ipAddr.split(',')[0].trim();
+        }
 
         // GMT+7 Time handling
         const date = new Date();
@@ -82,24 +78,24 @@ exports.createPayment = async (req, res) => {
             'vnp_OrderType': 'other',
             'vnp_Amount': amount.toString(),
             'vnp_ReturnUrl': returnUrl.trim(),
-            'vnp_IpAddr': req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
+            'vnp_IpAddr': ipAddr,
             'vnp_CreateDate': createDate,
             'vnp_ExpireDate': expireDate
         };
 
-        // 1. Sort objects correctly
+        // 1. Sort object
         vnpParams = sortObject(vnpParams);
 
-        // 2. Generate sign data (NO encoding)
+        // 2. Generate sign data
         const signData = qs.stringify(vnpParams, { encode: false });
 
-        // 3. Generate Secure Hash
+        // 3. HMAC SHA512
         const hmac = crypto.createHmac("sha512", hashSecret.trim());
         const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
 
         vnpParams['vnp_SecureHash'] = signed;
 
-        // 4. Generate Final URL (WITH encoding)
+        // 4. Encode Final URL
         const paymentUrl = url + '?' + qs.stringify(vnpParams, { encode: true });
 
         res.status(200).json({ payUrl: paymentUrl });
