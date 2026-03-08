@@ -51,7 +51,7 @@ exports.createPayment = async (req, res) => {
 
         console.log("VNPAY Config Used:", { tmnCode, returnUrl, detectedHost: currentHost });
 
-        const amount = Math.round(appointment.totalPrice) * 100;
+        const amount = Math.floor(appointment.totalPrice * 100);
         const txnRef = appointment.appointmentId;
 
         // GMT+7 Time handling
@@ -70,10 +70,10 @@ exports.createPayment = async (req, res) => {
             'vnp_TmnCode': tmnCode.trim(),
             'vnp_Locale': 'vn',
             'vnp_CurrCode': 'VND',
-            'vnp_TxnRef': txnRef,
+            'vnp_TxnRef': txnRef.toString(),
             'vnp_OrderInfo': 'Thanh toan don hang ' + txnRef,
             'vnp_OrderType': 'other',
-            'vnp_Amount': amount,
+            'vnp_Amount': amount.toString(),
             'vnp_ReturnUrl': returnUrl.trim(),
             'vnp_IpAddr': req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
             'vnp_CreateDate': createDate,
