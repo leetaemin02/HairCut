@@ -758,13 +758,13 @@ function AppointmentsPage() {
             </>
           )}
 
-          {/* Barber View - Appointments Management */}
-          {user?.role === "barber" && (
+          {/* Barber/Admin View - Appointments Management */}
+          {(user?.role === "barber" || user?.role === "admin") && (
             <>
               {/* Header */}
               <div className="space-y-4">
                 <h1 className="text-4xl font-bold font-heading">
-                  Manage Appointments
+                  {user?.role === "admin" ? "All Appointments" : "Manage Appointments"}
                 </h1>
               </div>
 

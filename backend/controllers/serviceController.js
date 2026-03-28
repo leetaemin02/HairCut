@@ -3,7 +3,7 @@ const Service = require("../models/Service");
 // Get all services
 exports.getServices = async (req, res) => {
   try {
-    const services = await Service.find({ isActive: true });
+    const services = await Service.find({ isActive: true }).sort({ completedCount: -1 });
     res.status(200).json(services);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -26,13 +26,15 @@ exports.getServiceById = async (req, res) => {
 // Create service (admin only)
 exports.createService = async (req, res) => {
   try {
-    const { name, description, price, duration } = req.body;
+    const { name, description, price, duration, image, category } = req.body;
 
     const service = new Service({
       name,
       description,
       price,
       duration,
+      image,
+      category,
     });
 
     await service.save();
@@ -48,11 +50,11 @@ exports.createService = async (req, res) => {
 // Update service (admin only)
 exports.updateService = async (req, res) => {
   try {
-    const { name, description, price, duration, isActive } = req.body;
+    const { name, description, price, duration, isActive, image, category } = req.body;
 
     const service = await Service.findByIdAndUpdate(
       req.params.id,
-      { name, description, price, duration, isActive },
+      { name, description, price, duration, isActive, image, category },
       { new: true }
     );
 

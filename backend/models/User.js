@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema(
     },
     address: String,
     profileImage: String,
+    specialty: {
+      type: [String],
+      default: ["Professional Barber"],
+    },
     isActive: {
       type: Boolean,
       default: true,

@@ -23,6 +23,14 @@ export const authAPI = {
   getProfile: () => api.get("/auth/profile"),
   updateProfile: (data) => api.put("/auth/profile", data),
   getBarbers: () => api.get("/auth/barbers"),
+  getBarbersByService: (specialty) => api.get(`/auth/barbers?specialty=${specialty}`),
+  getBarberById: (id) => api.get(`/auth/barbers/${id}`),
+  
+  // Admin User controls
+  getAllUsers: () => api.get("/auth/admin/users"),
+  updateUserRole: (id, roleData) => api.put(`/auth/admin/users/${id}/role`, roleData),
+  deleteUser: (id) => api.delete(`/auth/admin/users/${id}`),
+  getStats: () => api.get("/auth/admin/stats"),
 };
 
 // Appointment API

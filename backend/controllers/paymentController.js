@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const qs = require("qs");
 const Appointment = require("../models/Appointment");
+const Service = require("../models/Service");
 
 // Chuẩn hóa hàm sortObject theo đúng tài liệu VNPAY
 // Chuẩn hóa hàm sortObject theo đúng tài liệu VNPAY
@@ -137,6 +138,14 @@ exports.handleReturn = async (req, res) => {
 
             if (responseCode === "00") {
                 await Appointment.findOneAndUpdate({ appointmentId: txnRef }, { paymentStatus: "paid" });
+                const updatedAppt = await Appointment.findOneAndUpdate(
+                    { appointmentId: txnRef, isCounted: false },
+                    { isCounted: true },
+                    { new: false }
+                );
+                if (updatedAppt) {
+                    await Service.findByIdAndUpdate(updatedAppt.serviceId, { $inc: { completedCount: 1 } });
+                }
                 return res.redirect(`${frontendUrl}/profile?payment=success&ref=${txnRef}`);
             } else {
                 return res.redirect(`${frontendUrl}/profile?payment=failed&code=${responseCode}`);
@@ -189,6 +198,14 @@ exports.handleIPN = async (req, res) => {
 
             if (responseCode === "00" || responseCode === "07") {
                 await Appointment.findOneAndUpdate({ appointmentId: txnRef }, { paymentStatus: "paid" });
+                const winningAppt = await Appointment.findOneAndUpdate(
+                    { appointmentId: txnRef, isCounted: false },
+                    { isCounted: true },
+                    { new: false }
+                );
+                if (winningAppt) {
+                    await Service.findByIdAndUpdate(winningAppt.serviceId, { $inc: { completedCount: 1 } });
+                }
                 return res.status(200).json({ RspCode: '00', Message: 'Confirm Success' });
             } else {
                 // Payment failed, you might want to update status to "failed" here depending on your logic

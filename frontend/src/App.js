@@ -9,6 +9,9 @@ import Dashboard from "./pages/Dashboard";
 import QRScanner from "./pages/QRScanner";
 import ProfilePage from "./pages/ProfilePage";
 import PaymentPage from "./pages/PaymentPage";
+import ServiceDetail from "./pages/ServiceDetail";
+import BarberProfile from "./pages/BarberProfile";
+import AdminDashboard from "./pages/AdminDashboard";
 import "./App.css";
 
 function ProtectedRoute({ children }) {
@@ -60,6 +63,16 @@ function App() {
           element={
             <ProtectedRoute>
               <PaymentPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/services/:id" element={<ServiceDetail />} />
+        <Route path="/barbers/:id" element={<BarberProfile />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

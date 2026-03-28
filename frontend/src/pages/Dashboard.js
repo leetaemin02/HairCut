@@ -35,7 +35,7 @@ function Dashboard() {
       const mappedBarbers = response.data.map((barber) => ({
         id: barber._id,
         name: barber.name,
-        role: barber.specialty || "Professional Barber",
+        role: Array.isArray(barber.specialty) ? (barber.specialty.length > 0 ? barber.specialty : ["Professional Barber"]) : [barber.specialty || "Professional Barber"],
         image: barber.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${barber.name}&backgroundColor=b6e3f4`,
         bio: "Experienced professional dedicated to your perfect look.",
       }));
@@ -64,33 +64,25 @@ function Dashboard() {
       <main className="flex flex-col">
         {/* Hero Section */}
         <section
-          className="relative px-6 py-20 md:py-32 flex flex-col items-center text-center overflow-hidden bg-cover bg-center bg-no-repeat"
+          className="relative px-6 py-24 md:py-48 flex flex-col items-center text-center overflow-hidden bg-cover bg-center bg-no-repeat min-h-[85vh] justify-center"
           style={{ backgroundImage: "url('/assets/banner.jpg')" }}
         >
-          <div className="absolute inset-0 bg-slate-900/80 pointer-events-none"></div>
-          <div className="z-10 max-w-4xl space-y-6">
-            <div className="inline-block px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-4">
-              ✨ Welcome to the best grooming experience
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold font-heading tracking-tight bg-gradient-to-r from-white via-white to-slate-400 text-transparent bg-clip-text">
+          <div className="absolute inset-0 bg-[#0D1B2A]/70 pointer-events-none"></div>
+          <div className="z-10 max-w-5xl space-y-8">
+            <h1
+              className="text-6xl md:text-6xl font-serif text-white tracking-tight leading-tight"
+            >
               Elevate Your Style
             </h1>
-            <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl text-white/80 max-w-2xl mx-auto font-serif italic">
               Experience premium haircutting services tailored to the modern gentleman.
-              From classic cuts to hot towel shaves, we define excellence.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-10">
               <button
                 onClick={() => navigate("/appointments")}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:scale-105 transition-transform text-white font-bold rounded-xl shadow-lg shadow-blue-500/25"
+                className="px-10 py-4 bg-transparent border-2 border-white hover:bg-white hover:text-navy transition-all text-white font-serif font-bold text-lg rounded-full"
               >
-                Book Appointment
-              </button>
-              <button
-                onClick={() => document.getElementById('location').scrollIntoView({ behavior: 'smooth' })}
-                className="px-8 py-4 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-white font-bold rounded-xl"
-              >
-                Find Location
+                Book Here
               </button>
             </div>
           </div>
@@ -107,23 +99,31 @@ function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {services.length > 0 ? (
                 services.map((service) => (
-                  <div key={service._id} className="group p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all hover:-translate-y-1">
-                    <div className="w-full h-64 mb-6 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-4xl group-hover:scale-105 transition-transform overflow-hidden shadow-lg border border-white/5 relative">
+                  <div
+                    key={service._id}
+                    onClick={() => navigate(`/services/${service._id}`)}
+                    className="group p-6 rounded-2xl bg-white/5 border border-white/5 transition-all hover:-translate-y-1 cursor-pointer"
+                  >
+                    <div className="w-full h-64 mb-6 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-4xl transition-transform overflow-hidden shadow-lg border border-white/5 relative">
                       {service.image ? (
                         <img
                           src={service.image}
                           alt={service.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
                       ) : (
-                        "✂️"
+                        ""
                       )}
                     </div>
-                    <h3 className="text-xl font-bold mb-2">{service.name}</h3>
-                    <p className="text-slate-400 text-sm mb-4 line-clamp-2">{service.description || "Experience the best quality service with our experts."}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-blue-400 font-bold">{Number(service.price).toLocaleString('vi-VN')} VND</span>
-
+                    <div className="flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                      {service.completedCount || 0} Booked
+                    </div>
+                    <h3 className="text-1xl font-serif font-bold mb-2 transition-colors uppercase tracking-widest">{service.name}</h3>
+                    <p className="text-slate-400 text-sm mb-4 line-clamp-2">{service.description}</p>
+                    <div className="flex items-center justify-between border-t border-white/10 pt-4">
+                      <span className="text-blue-400 font-bold tracking-widest">{Number(service.price).toLocaleString('vi-VN')} VND</span>
+                      <span className="text-sm text-slate-500 underline underline-offset-4 group-hover:text-white transition-colors">Details →</span>
                     </div>
                   </div>
                 ))
@@ -152,7 +152,11 @@ function Dashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {barbers.map((barber) => (
-                <div key={barber.id} className="relative overflow-hidden rounded-2xl bg-slate-800/50 border border-white/5 aspect-[3/4] group">
+                <div 
+                  key={barber.id} 
+                  onClick={() => navigate(`/barbers/${barber.id}`)}
+                  className="relative overflow-hidden rounded-2xl bg-slate-800/50 border border-white/5 aspect-[3/4] group cursor-pointer"
+                >
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent z-10 opacity-90"></div>
                   <img
                     src={barber.image}
@@ -160,7 +164,11 @@ function Dashboard() {
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute bottom-0 left-0 right-0 p-6 z-20 translate-y-2 group-hover:translate-y-0 transition-transform">
-                    <p className="text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">{barber.role}</p>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {barber.role.map((r, idx) => (
+                        <span key={idx} className="text-blue-400 text-[10px] font-bold uppercase tracking-widest bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-400/20">{r}</span>
+                      ))}
+                    </div>
                     <h3 className="text-xl font-bold text-white mb-2">{barber.name}</h3>
                     <p className="text-slate-300 text-sm opacity-0 group-hover:opacity-100 transition-opacity delay-100">{barber.bio}</p>
                   </div>

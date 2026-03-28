@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const Service = require("../models/Service");
+const Appointment = require("../models/Appointment");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
@@ -110,9 +112,131 @@ exports.updateProfile = async (req, res) => {
 // Get all barbers
 exports.getBarbers = async (req, res) => {
   try {
-    const barbers = await User.find({ role: "barber" }).select("-password");
+    const { specialty } = req.query;
+    let query = { role: "barber", isActive: true };
+
+    if (specialty) {
+      // Use case-insensitive regex to match specialty, even if it's an array in MongoDB
+      query.specialty = { $regex: new RegExp("^" + specialty.trim() + "$", "i") };
+    }
+
+    const barbers = await User.find(query).select("-password");
     res.status(200).json(barbers);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.getBarberById = async (req, res) => {
+  const { id } = req.params;
+  console.log("===> Đang tìm kiếm Barber với ID:", id); // Log để kiểm tra
+
+  try {
+    // Tìm kiếm thợ và log kết quả trả về từ DB
+    const barber = await User.findById(id).select("-password");
+
+    if (barber) {
+      console.log(`===> Tìm thấy User: ${barber.name}, Role hiện tại: [${barber.role}]`);
+    } else {
+      console.log("===> Không tìm thấy bất kỳ User nào với ID này trong DB.");
+    }
+
+    // Kiểm tra role (đảm bảo so sánh chính xác)
+    if (!barber || String(barber.role).toLowerCase() !== "barber") {
+      return res.status(404).json({ message: "Barber not found or role mismatch" });
+    }
+
+    res.status(200).json(barber);
+  } catch (error) {
+    console.error("===> Lỗi khi tìm barber:", error.message);
+    if (error.kind === 'ObjectId') {
+      return res.status(400).json({ message: "Invalid Barber ID format" });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// --- Admin Controls ---
+// Get all users
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Update user role
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { new: true }
+    ).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete user
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// --- Get Statistics ---
+exports.getAdminStats = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalServices = await Service.countDocuments({ isActive: true });
+    
+    // Total revenue from completed appointments
+    const completedAppointments = await Appointment.find({ status: "completed" });
+    const totalRevenue = completedAppointments.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
+    const totalOrders = await Appointment.countDocuments();
+
+    // Group revenue by month using aggregation
+    const revenueByMonth = await Appointment.aggregate([
+      { $match: { status: "completed" } },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$appointmentDate" },
+            month: { $month: "$appointmentDate" }
+          },
+          totalRevenue: { $sum: "$totalPrice" }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]);
+
+    // Format for frontend chart
+    const formattedRevenue = revenueByMonth.map(item => ({
+      month: `Tháng ${item._id.month}`,
+      revenue: item.totalRevenue
+    }));
+
+    res.status(200).json({
+      totalUsers,
+      totalServices,
+      totalRevenue,
+      totalOrders,
+      revenueByMonth: formattedRevenue
+    });
+  } catch (error) {
+    console.error("Stats Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+

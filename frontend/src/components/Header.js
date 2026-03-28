@@ -16,74 +16,73 @@ function Header({ user }) {
     };
 
     return (
-        <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-900/80 px-4 py-3 backdrop-blur-sm sm:px-6 md:px-10 lg:px-20">
-            <div className="flex items-center justify-between md:grid md:grid-cols-3">
-                <div className="flex items-center gap-4 md:justify-self-start">
-                    <h2 className="text-2xl font-bold font-heading tracking-wide bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 text-transparent bg-clip-text drop-shadow-sm">
+        <header className="sticky top-0 z-50 bg-navy px-6 py-5 sm:px-10 lg:px-20 border-b border-white/5 shadow-2xl">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                    <h2
+                        onClick={() => navigate("/dashboard")}
+                        className="text-3xl font-logo text-white tracking-widest cursor-pointer hover:opacity-90 transition-opacity"
+                    >
                         The Blue Blade
                     </h2>
                 </div>
 
-                <div className="hidden md:flex items-center gap-8 md:justify-self-center">
+                <div className="hidden md:flex items-center gap-10">
                     <button
                         onClick={() => navigate("/dashboard")}
-                        className={`${isActive("/dashboard")} transition-colors text-sm font-medium`}
+                        className={`font-serif text-[18px] transition-colors ${location.pathname === "/dashboard" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
                     >
                         Dashboard
                     </button>
                     <button
                         onClick={() => navigate("/appointments")}
-                        className={`${isActive("/appointments")} transition-colors text-sm font-medium`}
+                        className={`font-serif text-[18px] transition-colors ${location.pathname === "/appointments" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
                     >
-                        Appointments
+                        {(user?.role === "barber" || user?.role === "admin") ? "Manage Appointment" : "Services"}
                     </button>
                     <button
                         onClick={() => navigate("/profile")}
-                        className={`${isActive("/profile")} transition-colors text-sm font-medium`}
+                        className={`font-serif text-[18px] transition-colors ${location.pathname === "/profile" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
                     >
-                        Profile
+                        Customer
                     </button>
-                    <a
-                        href="#"
-                        className="text-white/60 hover:text-white transition-colors text-sm font-medium"
+                    <button
+                        onClick={() => navigate("/about")}
+                        className={`font-serif text-[18px] transition-colors ${location.pathname === "/about" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
                     >
                         About
-                    </a>
-                </div>
-
-                <div className="flex items-center gap-4 md:justify-self-end">
-                    {user?.role === "barber" && (
+                    </button>
+                    {user?.role === "admin" && (
                         <button
-                            onClick={() => navigate("/scanner")}
-                            className="hidden sm:flex px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors"
+                            onClick={() => navigate("/admin")}
+                            className={`font-serif text-[18px] transition-colors ${location.pathname === "/admin" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
                         >
-                            Scan QR
+                            Admin
                         </button>
                     )}
-                    <div className="flex items-center gap-3">
-                        {user ? (
-                            <>
-                                <span className="text-sm font-medium hidden sm:inline">
-                                    {user.name}
-                                </span>
-                                <button
-                                    onClick={handleLogout}
-                                    className="text-white/60 hover:text-white transition-colors text-sm font-medium"
-                                >
-                                    Logout
-                                </button>
-                            </>
-                        ) : (
+                </div>
+
+                <div className="flex items-center gap-6">
+                    {user ? (
+                        <div className="flex items-center gap-4">
+                            <span className="font-serif text-white/90 hidden sm:inline text-lg">Hi, {user.name}</span>
                             <button
-                                onClick={() => navigate("/login")}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors"
+                                onClick={handleLogout}
+                                className="text-white/60 hover:text-white transition-colors text-sm font-serif ml-2"
                             >
-                                Login
+                                Logout
                             </button>
-                        )}
-                    </div>
-                </div >
-            </div >
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => navigate("/login")}
+                            className="px-6 py-2 border border-white/30 hover:bg-white/10 text-white font-serif rounded-full transition-all"
+                        >
+                            Login
+                        </button>
+                    )}
+                </div>
+            </div>
         </header >
     );
 }

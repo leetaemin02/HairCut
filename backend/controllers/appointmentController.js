@@ -178,11 +178,20 @@ exports.getAppointmentById = async (req, res) => {
 exports.updateAppointment = async (req, res) => {
   try {
     const { status, notes } = req.body;
+    const oldAppointment = await Appointment.findById(req.params.id);
+    if (!oldAppointment) return res.status(404).json({ message: "Appointment not found" });
+
     const appointment = await Appointment.findByIdAndUpdate(
       req.params.id,
       { status, notes },
       { new: true }
     ).populate("barberId", "name email phone");
+
+    if (status === "completed" && !appointment.isCounted) {
+      await Service.findByIdAndUpdate(appointment.serviceId, { $inc: { completedCount: 1 } });
+      appointment.isCounted = true;
+      await appointment.save();
+    }
 
     res.status(200).json(appointment);
   } catch (error) {

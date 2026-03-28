@@ -43,6 +43,10 @@ const appointmentSchema = new mongoose.Schema(
       enum: ["pending", "paid", "cancelled"],
       default: "pending",
     },
+    isCounted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
