@@ -54,25 +54,45 @@ const checkAvailability = async (barberId, appointmentDate, duration) => {
 // Create appointment
 exports.createAppointment = async (req, res) => {
   try {
-    const { barberId, serviceId, appointmentDate, notes } = req.body;
+    const { barberId, serviceIds, appointmentDate, notes, voucherCode } = req.body;
     const customerId = req.user.id;
+
+    if (!serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0) {
+      return res.status(400).json({ message: "At least one service must be selected" });
+    }
 
     // Check if appointment date is in the past
     if (new Date(appointmentDate) < new Date()) {
       return res.status(400).json({ message: "Cannot book an appointment in the past" });
     }
 
-    // Get service details
-    const service = await Service.findById(serviceId);
-    if (!service) {
-      return res.status(404).json({ message: "Service not found" });
+    // Get all services details
+    const selectedServices = await Service.find({ _id: { $in: serviceIds } });
+    if (selectedServices.length === 0) {
+      return res.status(404).json({ message: "No valid services found" });
     }
 
-    // Check availability before creating appointment (Step C: Server-side check)
+    // Calculate total duration and total price
+    const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
+    let basePrice = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+    let totalPrice = basePrice;
+    
+    // Apply Voucher
+    if (voucherCode) {
+      const Voucher = require("../models/Voucher");
+      const voucher = await Voucher.findOne({ code: voucherCode.toUpperCase(), isActive: true });
+      if (voucher && voucher.usedCount < voucher.usageLimit) {
+        voucher.usedCount += 1;
+        await voucher.save();
+        totalPrice = basePrice * (1 - voucher.discountPercent / 100);
+      }
+    }
+
+    // Check availability before creating appointment
     const availabilityCheck = await checkAvailability(
       barberId,
       appointmentDate,
-      service.duration
+      totalDuration
     );
 
     if (!availabilityCheck.available) {
@@ -88,11 +108,11 @@ exports.createAppointment = async (req, res) => {
       appointmentId,
       customerId,
       barberId,
-      serviceId,
+      serviceIds,
       appointmentDate,
-      duration: service.duration,
+      duration: totalDuration,
       notes,
-      totalPrice: service.price,
+      totalPrice,
     });
 
     await appointment.save();
@@ -147,7 +167,7 @@ exports.getAppointments = async (req, res) => {
     const appointments = await Appointment.find(query)
       .populate("customerId", "name email phone")
       .populate("barberId", "name email phone")
-      .populate("serviceId", "name price duration")
+      .populate("serviceIds", "name price duration")
       .sort({ appointmentDate: 1 });
 
     res.status(200).json(appointments);
@@ -162,7 +182,7 @@ exports.getAppointmentById = async (req, res) => {
     const appointment = await Appointment.findById(req.params.id)
       .populate("customerId", "name email phone")
       .populate("barberId", "name email phone")
-      .populate("serviceId", "name price duration");
+      .populate("serviceIds", "name price duration");
 
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
@@ -177,18 +197,33 @@ exports.getAppointmentById = async (req, res) => {
 // Update appointment
 exports.updateAppointment = async (req, res) => {
   try {
-    const { status, notes } = req.body;
+    const { status, notes, paymentStatus } = req.body;
     const oldAppointment = await Appointment.findById(req.params.id);
     if (!oldAppointment) return res.status(404).json({ message: "Appointment not found" });
 
+    // Guard: cannot mark as 'completed' if payment is still pending
+    if (status === "completed" && (paymentStatus || oldAppointment.paymentStatus) === "pending") {
+      return res.status(400).json({
+        message: "Không thể hoàn tất lịch hẹn khi chưa thanh toán. Vui lòng cập nhật trạng thái thanh toán trước."
+      });
+    }
+
+    const updateFields = {};
+    if (status) updateFields.status = status;
+    if (notes !== undefined) updateFields.notes = notes;
+    if (paymentStatus) updateFields.paymentStatus = paymentStatus;
+
     const appointment = await Appointment.findByIdAndUpdate(
       req.params.id,
-      { status, notes },
+      updateFields,
       { new: true }
     ).populate("barberId", "name email phone");
 
-    if (status === "completed" && !appointment.isCounted) {
-      await Service.findByIdAndUpdate(appointment.serviceId, { $inc: { completedCount: 1 } });
+    if (appointment.status === "completed" && !appointment.isCounted) {
+      await Service.updateMany(
+        { _id: { $in: appointment.serviceIds } },
+        { $inc: { completedCount: 1 } }
+      );
       appointment.isCounted = true;
       await appointment.save();
     }
@@ -241,7 +276,10 @@ exports.scanQRCode = async (req, res) => {
       qrCode.appointmentId,
       { status: "confirmed" },
       { new: true }
-    ).populate("customerId", "name email phone");
+    ).populate([
+      { path: "customerId", select: "name email phone" },
+      { path: "serviceIds", select: "name price duration" }
+    ]);
 
     res.status(200).json({
       message: "QR code scanned successfully",
@@ -255,27 +293,28 @@ exports.scanQRCode = async (req, res) => {
 // Get available time slots for a specific barber and date
 exports.getAvailableTimeSlots = async (req, res) => {
   try {
-    const { barberId, date, serviceId } = req.query;
+    const { barberId, date, serviceIds } = req.query;
 
-    if (!barberId || !date || !serviceId) {
+    if (!barberId || !date || !serviceIds) {
       return res.status(400).json({
-        message: "barberId, date, and serviceId are required",
+        message: "barberId, date, and serviceIds are required",
       });
     }
-
-    // Get service details for duration
-    const service = await Service.findById(serviceId);
-    if (!service) {
-      return res.status(404).json({ message: "Service not found" });
+    // Get all services details for duration
+    const services = await Service.find({ _id: { $in: Array.isArray(serviceIds) ? serviceIds : [serviceIds] } });
+    if (services.length === 0) {
+      return res.status(404).json({ message: "Services not found" });
     }
+
+    const totalDuration = services.reduce((sum, s) => sum + (s.duration || 30), 0);
 
     // Step A: Parse YYYY-MM-DD as LOCAL date (not UTC)
     const [year, month, day] = date.split("-").map(Number);
     const selectedDate = new Date(year, month - 1, day); // Local midnight
 
     console.log("[getAvailableTimeSlots] Received date:", date, "-> parsed:", selectedDate.toString());
-    console.log("[getAvailableTimeSlots] barberId:", barberId, "serviceId:", serviceId);
-    console.log("[getAvailableTimeSlots] service duration:", service.duration, "minutes");
+    console.log("[getAvailableTimeSlots] barberId:", barberId, "serviceIds:", serviceIds);
+    console.log("[getAvailableTimeSlots] total duration:", totalDuration, "minutes");
 
     const businessHours = { start: 9, end: 18 };
     const slotDuration = 45; // minutes - matching original slot intervals
@@ -301,7 +340,7 @@ exports.getAvailableTimeSlots = async (req, res) => {
       console.log(`[getAvailableTimeSlots] processing slot ${slot.toISOString()}, isPast: ${isPast}`);
 
       if (!isPast) {
-        const availability = await checkAvailability(barberId, slot, service.duration);
+        const availability = await checkAvailability(barberId, slot, totalDuration);
         isAvailable = availability.available;
       } else {
         isAvailable = false; // Past slots are not available
@@ -325,7 +364,7 @@ exports.getAvailableTimeSlots = async (req, res) => {
     res.status(200).json({
       date: selectedDate,
       barberId,
-      serviceId,
+      serviceIds,
       availableSlots,
     });
   } catch (error) {

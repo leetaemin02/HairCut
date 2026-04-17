@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { authAPI } from "../services/api";
 import Header from "../components/Header";
 
@@ -12,7 +12,14 @@ function Login() {
 
   useEffect(() => {
     if (localStorage.getItem("token")) {
-      navigate("/dashboard");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user.role === "barber") {
+        navigate("/barber-dashboard");
+      } else if (user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     }
   }, [navigate]);
 
@@ -25,7 +32,14 @@ function Login() {
       const response = await authAPI.login({ email, password });
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
-      navigate("/dashboard");
+      
+      if (response.data.user.role === "barber") {
+        navigate("/barber-dashboard");
+      } else if (response.data.user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     } finally {
@@ -88,12 +102,12 @@ function Login() {
           </form>
           <p className="text-center mt-8 text-slate-400 text-sm">
             Don't have an account?{" "}
-            <a
-              href="/register"
+            <Link
+              to="/register"
               className="text-blue-400 font-bold hover:text-blue-300 hover:underline transition-colors"
             >
               Register here
-            </a>
+            </Link>
           </p>
         </div>
       </main>

@@ -1,251 +1,302 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { QRCodeCanvas } from "qrcode.react";
+import { appointmentAPI, reviewAPI } from "../services/api";
 import Header from "../components/Header";
-import SuccessIcon from "../components/SuccessIcon";
-import QRCodeSection from "../components/QRCodeSection";
-import AppointmentDetailCard from "../components/AppointmentDetailCard";
-import { icons } from "../utils/appointmentIcons";
-import { appointmentAPI } from "../services/api";
 
 function AppointmentConfirmation() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const [user, setUser] = useState(null);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [showCancelDialog, setShowCancelDialog] = useState(false);
-    const [cancelling, setCancelling] = useState(false);
-    const appointment = location.state?.appointment;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [user, setUser] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const appointment = location.state?.appointment;
 
-    useEffect(() => {
-        const userData = localStorage.getItem("user");
-        if (userData) setUser(JSON.parse(userData));
-        if (!appointment) {
-            navigate("/appointments");
-            return;
-        }
-        setTimeout(() => setShowSuccess(true), 100);
-    }, [appointment, navigate]);
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) setUser(JSON.parse(userData));
+    if (!appointment) { navigate("/appointments"); return; }
+    setTimeout(() => setShowSuccess(true), 100);
+  }, [appointment, navigate]);
 
-    const downloadQRCode = () => {
-        const canvas = document.querySelector("#confirmation-qr canvas");
-        if (canvas) {
-            const url = canvas.toDataURL("image/png");
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `appointment-${appointment.appointmentId}.png`;
-            link.click();
-        }
-    };
+  const downloadQRCode = () => {
+    const canvas = document.querySelector("#confirmation-qr canvas");
+    if (canvas) {
+      const url = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `appointment-${appointment.appointmentId}.png`;
+      link.click();
+    }
+  };
 
-    const handleCancelAppointment = async () => {
-        setCancelling(true);
-        try {
-            await appointmentAPI.cancelAppointment(appointment._id);
-            // Navigate back to profile or appointments page
-            navigate("/profile", {
-                state: { message: "Appointment cancelled successfully" },
-            });
-        } catch (error) {
-            alert("Failed to cancel appointment. Please try again.");
-            setCancelling(false);
-        }
-    };
+  const handleCancelAppointment = async () => {
+    setCancelling(true);
+    try {
+      await appointmentAPI.cancelAppointment(appointment._id);
+      navigate("/appointments");
+    } catch {
+      alert("Không thể hủy lịch hẹn. Vui lòng thử lại.");
+      setCancelling(false);
+    }
+  };
 
-    // Check if appointment can be cancelled (not already cancelled or completed)
-    const canCancel = appointment &&
-        appointment.status !== "cancelled" &&
-        appointment.status !== "completed";
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    setReviewLoading(true);
+    try {
+      await reviewAPI.createReview({
+        appointmentId: appointment._id,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      });
+      alert("Cảm ơn bạn đã đánh giá!");
+      setShowReview(false);
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi khi gửi đánh giá");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
 
-    if (!appointment) return null;
+  if (!appointment) return null;
 
-    const appointmentDateTime = new Date(appointment.appointmentDate);
-    const formattedDate = appointmentDateTime.toLocaleDateString("en-US", {
-        weekday: "short", // Viết tắt thứ để tiết kiệm không gian
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
-    const formattedTime = appointmentDateTime.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-    });
+  const canCancel = appointment.status !== "cancelled" && appointment.status !== "completed";
+  const isCompleted = appointment.status === "completed";
+  const dt = new Date(appointment.appointmentDate);
 
-    return (
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen text-white flex flex-col">
-            <Header user={user} />
+  const statusColors = {
+    pending: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
+    confirmed: "text-green-400 bg-green-400/10 border-green-400/30",
+    completed: "text-blue-400 bg-blue-400/10 border-blue-400/30",
+    cancelled: "text-red-400 bg-red-400/10 border-red-400/30",
+  };
 
-            <main className="flex flex-1 justify-center p-4 sm:p-6">
-                {/* Giảm max-w từ 4xl xuống 2xl để khung gọn hơn */}
-                <div className="w-full max-w-2xl">
-                    <div
-                        className={`transition-all duration-700 ${showSuccess ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-5"
-                            }`}
-                    >
-                        {/* Giảm kích thước icon thành công nếu component này hỗ trợ prop size */}
-                        <div className="scale-90 mb-2">
-                            <SuccessIcon />
-                        </div>
+  const paymentColors = {
+    pending: "text-orange-400",
+    paid: "text-green-400",
+    cancelled: "text-red-400",
+  };
 
-                        {/* Success Message - Nhỏ hơn */}
-                        <div className="text-center mb-6">
-                            <h1 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
-                                Booking Confirmed!
-                            </h1>
-                            <p className="text-white/60 text-sm">
-                                Your appointment has been scheduled
-                            </p>
-                        </div>
+  return (
+    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen text-white flex flex-col">
+      <Header user={user} />
 
-                        {/* Appointment Details Card */}
-                        <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden shadow-xl mb-6">
-                            {/* Header Banner - Thu gọn padding */}
-                            <div className="bg-gradient-to-r from-blue-600/80 to-cyan-600/80 p-4 text-center">
-                                <h2 className="text-lg font-bold">The Blue Blade</h2>
-                                <p className="text-white/70 text-xs">
-                                    ID: {appointment.appointmentId}
-                                </p>
-                            </div>
+      <main className="flex flex-1 justify-center items-start p-4 pt-6">
+        <div
+          className={`w-full max-w-sm transition-all duration-500 ${showSuccess ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+        >
+          {/* Success Badge */}
+          <div className="text-center mb-5">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-500/10 border-2 border-green-500/30 mb-3">
+              <svg className="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-white">Đặt lịch thành công!</h1>
+            <p className="text-white/50 text-xs mt-1">ID: {appointment.appointmentId}</p>
+          </div>
 
-                            <div className="p-5 space-y-5">
-                                {/* Giảm scale QR code nếu cần trong QRCodeSection */}
-                                <div className="flex justify-center py-2">
-                                    <QRCodeSection appointment={appointment} onDownload={downloadQRCode} />
-                                </div>
+          {/* Main Card */}
+          <div className="bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden">
 
-                                {/* Details Grid - Chỉnh gap nhỏ lại */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <AppointmentDetailCard
-                                        icon={icons.calendar}
-                                        iconBgColor="bg-blue-500/20"
-                                        iconColor="text-blue-400"
-                                        label="Date & Time"
-                                        title={formattedDate}
-                                        subtitle={<span className="text-blue-400 font-medium text-xs">{formattedTime}</span>}
-                                    />
-
-                                    <AppointmentDetailCard
-                                        icon={icons.service}
-                                        iconBgColor="bg-purple-500/20"
-                                        iconColor="text-purple-400"
-                                        label="Service"
-                                        title={appointment.serviceId?.name || "Service"}
-                                        subtitle={<span className="text-xs">{`${Number(appointment.totalPrice).toLocaleString('vi-VN')} VND`}</span>}
-                                    />
-
-                                    <AppointmentDetailCard
-                                        icon={icons.user}
-                                        iconBgColor="bg-cyan-500/20"
-                                        iconColor="text-cyan-400"
-                                        label="Your Barber"
-                                        title={appointment.barberId?.name || "Professional"}
-                                        subtitle={<span className="text-xs truncate block max-w-[150px]">{appointment.barberId?.email}</span>}
-                                    />
-
-                                    <AppointmentDetailCard
-                                        icon={icons.status}
-                                        iconBgColor="bg-yellow-500/20"
-                                        iconColor="text-yellow-400"
-                                        label="Status"
-                                        title={<span className="capitalize text-sm">{appointment.status}</span>}
-                                        subtitle={<span className="text-xs">Payment: {appointment.paymentStatus}</span>}
-                                    />
-                                </div>
-
-                                {appointment.notes && (
-                                    <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                                        <p className="text-[10px] text-blue-400 uppercase font-bold mb-1">
-                                            Special Requests
-                                        </p>
-                                        <p className="text-white/70 text-sm italic">"{appointment.notes}"</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Action Buttons - Giảm padding nút */}
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <button
-                                onClick={() => navigate("/appointments")}
-                                className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-all active:scale-95"
-                            >
-                                View All
-                            </button>
-                            <button
-                                onClick={() => navigate("/dashboard")}
-                                className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold rounded-lg transition-all active:scale-95"
-                            >
-                                Dashboard
-                            </button>
-                        </div>
-
-                        {/* Cancel Button - Only for upcoming appointments */}
-                        {canCancel && (
-                            <button
-                                onClick={() => setShowCancelDialog(true)}
-                                className="w-full mt-3 px-6 py-3 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 hover:border-red-500 text-red-400 hover:text-red-300 text-sm font-bold rounded-lg transition-all active:scale-95"
-                            >
-                                Cancel Appointment
-                            </button>
-                        )}
-
-                        {/* Notice - Thu nhỏ font */}
-                        <div className="mt-6 border-t border-white/10 pt-4 text-center">
-                            <p className="text-amber-400/80 text-[11px] leading-relaxed">
-                                Tip: Please arrive 5-10 mins early. <br />
-                                Cancellations require 24h notice.
-                            </p>
-                        </div>
-                    </div>
+            {/* QR + Info Row */}
+            <div className="p-5 flex items-start gap-4">
+              {/* QR Code */}
+              {appointment.qrCode && (
+                <div className="shrink-0" id="confirmation-qr">
+                  <div className="bg-white p-2 rounded-xl">
+                    <QRCodeCanvas
+                      value={JSON.stringify({
+                        appointmentId: appointment._id,
+                        appointmentCode: appointment.appointmentId,
+                      })}
+                      size={90}
+                    />
+                  </div>
+                  <button
+                    onClick={downloadQRCode}
+                    className="w-full mt-1.5 text-[10px] font-bold text-white/40 hover:text-white transition-colors text-center"
+                  >
+                    Tải QR
+                  </button>
                 </div>
-            </main>
+              )}
 
-            {/* Cancel Confirmation Dialog */}
-            {showCancelDialog && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-slate-800 rounded-2xl border border-white/10 p-6 max-w-md w-full shadow-2xl">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
-                                <svg
-                                    className="w-6 h-6 text-red-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                    />
-                                </svg>
-                            </div>
-                            <h3 className="text-xl font-bold text-white">Cancel Appointment?</h3>
-                        </div>
-                        <p className="text-white/70 mb-6">
-                            Are you sure you want to cancel this appointment? This action cannot be undone.
-                        </p>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setShowCancelDialog(false)}
-                                disabled={cancelling}
-                                className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Keep Appointment
-                            </button>
-                            <button
-                                onClick={handleCancelAppointment}
-                                disabled={cancelling}
-                                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {cancelling ? "Cancelling..." : "Yes, Cancel"}
-                            </button>
-                        </div>
-                    </div>
+              {/* Info */}
+              <div className="flex-1 space-y-2.5 min-w-0">
+                {/* Status row */}
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${statusColors[appointment.status] || statusColors.pending}`}>
+                    {appointment.status}
+                  </span>
+                  <span className={`text-[10px] font-bold ${paymentColors[appointment.paymentStatus] || paymentColors.pending}`}>
+                    💳 {appointment.paymentStatus === "paid" ? "Đã thanh toán" : appointment.paymentStatus === "cancelled" ? "Đã hủy" : "Chưa thanh toán"}
+                  </span>
                 </div>
+
+                {/* Date */}
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-blue-400 text-base">📅</span>
+                  <div>
+                    <p className="font-bold text-white text-sm leading-tight">
+                      {dt.toLocaleDateString("vi-VN", { weekday: "long", month: "short", day: "numeric" })}
+                    </p>
+                    <p className="text-white/50 text-xs">{dt.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                </div>
+
+                {/* Barber */}
+                <div className="flex items-center gap-2">
+                  <span className="text-purple-400 text-base">✂️</span>
+                  <div className="min-w-0">
+                    <p className="font-bold text-white text-sm truncate">{appointment.barberId?.name || "Chuyên nghiệp"}</p>
+                    <p className="text-white/50 text-xs truncate">{appointment.barberId?.email}</p>
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div className="flex items-center justify-between pt-1 border-t border-white/10">
+                  <span className="text-white/50 text-xs">Tổng tiền</span>
+                  <span className="text-white font-bold text-sm">{Number(appointment.totalPrice).toLocaleString("vi-VN")} VND</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes (if any) */}
+            {appointment.notes && (
+              <div className="px-5 pb-4">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <p className="text-[10px] text-blue-400 uppercase font-bold mb-1">Ghi chú</p>
+                  <p className="text-white/60 text-xs italic">"{appointment.notes}"</p>
+                </div>
+              </div>
             )}
+
+            {/* Review banner (completed) */}
+            {isCompleted && (
+              <div className="px-5 pb-4">
+                <button
+                  onClick={() => setShowReview(true)}
+                  className="w-full py-2.5 bg-gradient-to-r from-yellow-500/20 to-amber-500/10 hover:from-yellow-500/30 hover:to-amber-500/20 text-yellow-400 text-sm font-bold rounded-xl border border-yellow-500/25 transition-all flex items-center justify-center gap-2"
+                >
+                  <span>★★★★★</span> Đánh giá dịch vụ
+                </button>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="px-5 pb-5 flex gap-2">
+              <button
+                onClick={() => navigate("/appointments")}
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all active:scale-95"
+              >
+                Xem lịch hẹn
+              </button>
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-bold rounded-xl border border-white/10 transition-all active:scale-95"
+              >
+                Trang chủ
+              </button>
+            </div>
+          </div>
+
+          {/* Cancel */}
+          {canCancel && (
+            <button
+              onClick={() => setShowCancelDialog(true)}
+              className="w-full mt-3 py-2.5 text-red-400/70 hover:text-red-400 text-xs font-bold rounded-xl border border-red-500/20 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            >
+              Hủy lịch hẹn này
+            </button>
+          )}
+
+          {/* Note */}
+          <p className="text-center text-white/30 text-[10px] mt-4">
+            💡 Vui lòng đến trước 5-10 phút. Hủy lịch trước 24 giờ.
+          </p>
         </div>
-    );
+      </main>
+
+      {/* Cancel Dialog */}
+      {showCancelDialog && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl border border-white/10 p-6 max-w-xs w-full shadow-2xl">
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-3">
+                <span className="text-red-400 text-2xl">⚠️</span>
+              </div>
+              <h3 className="text-lg font-bold text-white">Hủy lịch hẹn?</h3>
+              <p className="text-white/60 text-sm mt-2">Thao tác này không thể hoàn tác.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelDialog(false)}
+                disabled={cancelling}
+                className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50"
+              >
+                Giữ lại
+              </button>
+              <button
+                onClick={handleCancelAppointment}
+                disabled={cancelling}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50"
+              >
+                {cancelling ? "Đang hủy..." : "Xác nhận hủy"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {showReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl border border-white/10 p-6">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-lg font-bold text-white">Đánh giá Dịch Vụ</h3>
+              <button onClick={() => setShowReview(false)} className="text-white/40 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div>
+                <p className="text-white/50 text-xs mb-2 uppercase tracking-wider">Mức độ hài lòng</p>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      type="button"
+                      key={star}
+                      onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                      className={`text-3xl transition-transform hover:scale-110 ${star <= reviewForm.rating ? "text-yellow-400" : "text-white/20"}`}
+                    >★</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <textarea
+                  rows="3"
+                  value={reviewForm.comment}
+                  onChange={e => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                  placeholder="Dịch vụ rất tốt, Barber tận tình..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 placeholder-white/30 resize-none"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowReview(false)} className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-sm">Hủy</button>
+                <button type="submit" disabled={reviewLoading} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm disabled:opacity-60">
+                  {reviewLoading ? "Đang gửi..." : "Gửi đánh giá"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default AppointmentConfirmation;

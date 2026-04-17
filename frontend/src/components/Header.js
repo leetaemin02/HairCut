@@ -34,12 +34,17 @@ function Header({ user }) {
                     >
                         Dashboard
                     </button>
-                    <button
-                        onClick={() => navigate("/appointments")}
-                        className={`font-serif text-[18px] transition-colors ${location.pathname === "/appointments" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
-                    >
-                        {(user?.role === "barber" || user?.role === "admin") ? "Manage Appointment" : "Services"}
-                    </button>
+                    {user?.role !== "admin" && (
+                        <button
+                            onClick={() => {
+                                if (user?.role === "barber") navigate("/barber-dashboard");
+                                else navigate("/services");
+                            }}
+                            className={`font-serif text-[18px] transition-colors ${(location.pathname === "/services" || location.pathname === "/barber-dashboard") ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
+                        >
+                            {user?.role === "barber" ? "Barber Portal" : "Services"}
+                        </button>
+                    )}
                     <button
                         onClick={() => navigate("/profile")}
                         className={`font-serif text-[18px] transition-colors ${location.pathname === "/profile" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}

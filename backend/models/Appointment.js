@@ -17,11 +17,11 @@ const appointmentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    serviceId: {
+    serviceIds: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "Service",
       required: true,
-    },
+    }],
     appointmentDate: {
       type: Date,
       required: true,

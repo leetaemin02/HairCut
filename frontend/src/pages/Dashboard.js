@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { serviceAPI, authAPI, lookbookAPI } from "../services/api";
+import { serviceAPI, authAPI, lookbookAPI, reviewAPI } from "../services/api";
 import Header from "../components/Header";
 
 function Dashboard() {
@@ -8,6 +8,7 @@ function Dashboard() {
   const [services, setServices] = useState([]);
   const [barbers, setBarbers] = useState([]);
   const [lookbookItems, setLookbookItems] = useState([]);
+  const [barberRatingStats, setBarberRatingStats] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,6 +19,7 @@ function Dashboard() {
     fetchServices();
     fetchBarbers();
     fetchLookbook();
+    fetchBarberRatings();
   }, []);
 
   const fetchServices = async () => {
@@ -51,6 +53,15 @@ function Dashboard() {
       setLookbookItems(response.data);
     } catch (err) {
       console.error("Error fetching lookbook:", err);
+    }
+  };
+
+  const fetchBarberRatings = async () => {
+    try {
+      const res = await reviewAPI.getBarberRatingStats();
+      setBarberRatingStats(res.data);
+    } catch (err) {
+      console.error("Error fetching barber ratings:", err);
     }
   };
 
@@ -152,8 +163,8 @@ function Dashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {barbers.map((barber) => (
-                <div 
-                  key={barber.id} 
+                <div
+                  key={barber.id}
                   onClick={() => navigate(`/barbers/${barber.id}`)}
                   className="relative overflow-hidden rounded-2xl bg-slate-800/50 border border-white/5 aspect-[3/4] group cursor-pointer"
                 >
@@ -169,7 +180,31 @@ function Dashboard() {
                         <span key={idx} className="text-blue-400 text-[10px] font-bold uppercase tracking-widest bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-400/20">{r}</span>
                       ))}
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2">{barber.name}</h3>
+                    <h3 className="text-xl font-bold text-white mb-1">{barber.name}</h3>
+
+                    {/* Star Rating */}
+                    {(() => {
+                      const stats = barberRatingStats[barber.id];
+                      if (!stats) return <p className="text-slate-400 text-xs mb-1">Chưa có đánh giá</p>;
+                      const fullStars = Math.floor(stats.avgRating);
+                      const halfStar = stats.avgRating - fullStars >= 0.5;
+                      return (
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <div className="flex">
+                            {[1,2,3,4,5].map(i => (
+                              <span key={i} className={`text-sm ${
+                                i <= fullStars ? 'text-yellow-400'
+                                : i === fullStars + 1 && halfStar ? 'text-yellow-400/60'
+                                : 'text-white/20'
+                              }`}>★</span>
+                            ))}
+                          </div>
+                          <span className="text-yellow-400 text-xs font-bold">{stats.avgRating}</span>
+                          <span className="text-white/40 text-xs">({stats.reviewCount})</span>
+                        </div>
+                      );
+                    })()}
+
                     <p className="text-slate-300 text-sm opacity-0 group-hover:opacity-100 transition-opacity delay-100">{barber.bio}</p>
                   </div>
                 </div>
@@ -226,7 +261,7 @@ function Dashboard() {
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xl">📍</div>
                     <div>
                       <h4 className="font-bold text-white">Address</h4>
-                      <p className="text-slate-400">123 Grooming Blvd, Downtown District<br />Metropolis, NY 10012</p>
+                      <p className="text-slate-400">71/41, Đường Nguyễn Công Hoan, P7<br />Quận Phú Nhuận, TP.HCM</p>
                     </div>
                   </div>
 
@@ -234,7 +269,7 @@ function Dashboard() {
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xl">🕒</div>
                     <div>
                       <h4 className="font-bold text-white">Opening Hours</h4>
-                      <p className="text-slate-400">Mon - Sat: 9:00 AM - 8:00 PM<br />Sunday: 10:00 AM - 5:00 PM</p>
+                      <p className="text-slate-400">Mon - Sat: 9:00 AM - 5:00 PM<br />Sunday: 9:00 AM - 5:00 PM</p>
                     </div>
                   </div>
 
@@ -242,7 +277,7 @@ function Dashboard() {
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xl">📞</div>
                     <div>
                       <h4 className="font-bold text-white">Contact</h4>
-                      <p className="text-slate-400">(555) 123-4567<br />hello@theblueblade.com</p>
+                      <p className="text-slate-400">0383018738<br />hello@theblueblade.com</p>
                     </div>
                   </div>
                 </div>

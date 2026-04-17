@@ -7,6 +7,9 @@ const appointmentRoutes = require("./routes/appointmentRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const lookbookRoutes = require("./routes/lookbookRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const aiRoutes = require("./routes/aiRoutes");
+const voucherRoutes = require("./routes/voucherRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 const app = express();
 
 // Middleware
@@ -29,6 +32,9 @@ app.use("/api/appointments", appointmentRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/lookbook", lookbookRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/vouchers", voucherRoutes);
+app.use("/api/reviews", reviewRoutes);
 // Health check
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "Server is running" });

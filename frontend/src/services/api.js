@@ -31,6 +31,7 @@ export const authAPI = {
   updateUserRole: (id, roleData) => api.put(`/auth/admin/users/${id}/role`, roleData),
   deleteUser: (id) => api.delete(`/auth/admin/users/${id}`),
   getStats: () => api.get("/auth/admin/stats"),
+  getBarberStats: () => api.get("/auth/admin/barber-stats"),
 };
 
 // Appointment API
@@ -57,11 +58,30 @@ export const serviceAPI = {
 export const lookbookAPI = {
   getLookbook: () => api.get("/lookbook"),
   createLookbook: (data) => api.post("/lookbook", data),
+  updateLookbook: (id, data) => api.put(`/lookbook/${id}`, data),
+  deleteLookbook: (id) => api.delete(`/lookbook/${id}`),
 };
 
 // Payment API
 export const paymentAPI = {
   createPayment: (data) => api.post("/payment/create", data),
+};
+
+// Voucher API
+export const voucherAPI = {
+  getVouchers: () => api.get("/vouchers"),
+  createVoucher: (data) => api.post("/vouchers", data),
+  updateVoucher: (id, data) => api.put(`/vouchers/${id}`, data),
+  deleteVoucher: (id) => api.delete(`/vouchers/${id}`),
+  validateVoucher: (data) => api.post("/vouchers/validate", data),
+};
+
+// Review API
+export const reviewAPI = {
+  getReviews: (params) => api.get("/reviews", { params }),
+  createReview: (data) => api.post("/reviews", data),
+  deleteReview: (id) => api.delete(`/reviews/${id}`),
+  getBarberRatingStats: () => api.get("/reviews/barber-stats"),
 };
 
 export default api;

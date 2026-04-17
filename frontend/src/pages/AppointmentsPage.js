@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
-import { appointmentAPI, serviceAPI, authAPI } from "../services/api";
+import { appointmentAPI, serviceAPI, authAPI, voucherAPI, reviewAPI } from "../services/api";
 import Header from "../components/Header";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -20,7 +20,7 @@ function AppointmentsPage() {
 
   // Booking flow state (for customers)
   const [step, setStep] = useState(1);
-  const [selectedService, setSelectedService] = useState(null);
+  const [selectedServices, setSelectedServices] = useState([]);
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [appointmentDate, setAppointmentDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -33,7 +33,19 @@ function AppointmentsPage() {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
+  // Voucher & Review states
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherInput, setVoucherInput] = useState("");
+  const [voucherDiscount, setVoucherDiscount] = useState(0);
+  const [voucherMsg, setVoucherMsg] = useState({ text: "", ok: false });
+  const [voucherLoading, setVoucherLoading] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState(null); // { appointmentId, barberId }
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
+  const [reviewLoading, setReviewLoading] = useState(false);
+
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -42,11 +54,18 @@ function AppointmentsPage() {
     if (!token) {
       navigate("/login");
     } else {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
       fetchAppointments();
       fetchServices();
-      if (JSON.parse(userData)?.role === "customer") {
+      if (parsedUser?.role === "customer") {
         fetchBarbers();
+
+        // Handle pre-selected service from navigation state
+        if (location.state && location.state.serviceId) {
+          setSelectedServices([location.state.serviceId]);
+          setStep(2); // Jump to barber selection
+        }
       }
     }
   }, [navigate]);
@@ -138,10 +157,10 @@ function AppointmentsPage() {
   };
 
   useEffect(() => {
-    if (selectedDateOnly && selectedBarber && selectedService) {
+    if (selectedDateOnly && selectedBarber && selectedServices.length > 0) {
       fetchAvailableSlots();
     }
-  }, [selectedDateOnly, selectedBarber, selectedService]);
+  }, [selectedDateOnly, selectedBarber, selectedServices]);
 
   const fetchAvailableSlots = async () => {
     setSlotsLoading(true);
@@ -155,7 +174,7 @@ function AppointmentsPage() {
       const response = await appointmentAPI.getAvailableSlots({
         barberId: selectedBarber,
         date: dateStr,
-        serviceId: selectedService
+        serviceIds: selectedServices
       });
 
       const slots = response.data.availableSlots || [];
@@ -264,9 +283,10 @@ function AppointmentsPage() {
     try {
       const response = await appointmentAPI.createAppointment({
         barberId: selectedBarber,
-        serviceId: selectedService,
+        serviceIds: selectedServices,
         appointmentDate,
         notes,
+        voucherCode: voucherCode || undefined,
       });
 
       // Navigate to confirmation page with appointment data
@@ -279,6 +299,71 @@ function AppointmentsPage() {
       );
     } finally {
       setBookingLoading(false);
+    }
+  };
+
+  const handleApplyVoucher = async () => {
+    if (!voucherInput.trim()) return;
+    setVoucherLoading(true);
+    setVoucherMsg({ text: "", ok: false });
+    try {
+      const res = await voucherAPI.validateVoucher({ code: voucherInput.trim() });
+      setVoucherCode(voucherInput.trim().toUpperCase());
+      setVoucherDiscount(res.data.discountPercent);
+      setVoucherMsg({ text: `✓ Áp dụng thành công! Giảm ${res.data.discountPercent}%`, ok: true });
+    } catch (err) {
+      setVoucherCode("");
+      setVoucherDiscount(0);
+      setVoucherMsg({ text: err.response?.data?.message || "Mã không hợp lệ", ok: false });
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const handleOpenReview = (appointment) => {
+    setReviewTarget({ appointmentId: appointment._id, barberId: appointment.barberId?._id });
+    setReviewForm({ rating: 5, comment: "" });
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    setReviewLoading(true);
+    try {
+      await reviewAPI.createReview({
+        appointmentId: reviewTarget.appointmentId,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      });
+      alert("Cảm ơn bạn đã đánh giá dịch vụ!");
+      setShowReviewModal(false);
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi khi gửi đánh giá");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleServiceSelect = (service) => {
+    const isSpecial = service.category === "Gói đặt biệt" || service.category === "Gói đặc biệt";
+
+    if (isSpecial) {
+      // If choosing special package, it's exclusive
+      setSelectedServices([service._id]);
+    } else {
+      // If choosing normal service, remove any special package first
+      setSelectedServices((prev) => {
+        const filtered = prev.filter((id) => {
+          const s = services.find((srv) => srv._id === id);
+          return s && s.category !== "Gói đặt biệt" && s.category !== "Gói đặc biệt";
+        });
+
+        if (filtered.includes(service._id)) {
+          return filtered.filter((id) => id !== service._id);
+        } else {
+          return [...filtered, service._id];
+        }
+      });
     }
   };
 
@@ -307,7 +392,8 @@ function AppointmentsPage() {
     }
   };
 
-  const currentService = services.find((s) => s._id === selectedService);
+  const selectedServicesData = services.filter(s => selectedServices.includes(s._id));
+  const totalSummaryPrice = selectedServicesData.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
   const progressWidth = (step / 4) * 100;
 
   return (
@@ -359,54 +445,87 @@ function AppointmentsPage() {
                     <h2 className="text-2xl font-bold font-heading pb-4">
                       Select a Service
                     </h2>
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5 }}
-                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-                    >
-                      {services.map((service, index) => (
+
+                    {/* Render by categories */}
+                    {[...new Set(services.map(s => s.category || "Khác"))].map((category) => (
+                      <div key={category} className="mb-10">
+                        <div className="flex items-center gap-4 mb-6">
+                          <h3 className="text-lg font-bold text-blue-400 uppercase tracking-widest">
+                            {category}
+                          </h3>
+                          <div className="h-px flex-1 bg-white/10"></div>
+                        </div>
+
                         <motion.div
-                          key={service._id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: index * 0.1 }}
-                          whileHover={{ scale: 1.05, y: -5 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            setSelectedService(service._id);
-                            setStep(2);
-                          }}
-                          className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2 shadow-lg ${selectedService === service._id
-                            ? "border-blue-500 bg-blue-500/20 shadow-blue-500/20"
-                            : "border-transparent bg-white/5 hover:border-white/20 hover:bg-white/10"
-                            }`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5 }}
+                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
                         >
-                          <div className="w-full aspect-square bg-gradient-to-br from-blue-600 to-cyan-600 rounded-md flex items-center justify-center overflow-hidden">
-                            {service.image ? (
-                              <img
-                                src={service.image}
-                                alt={service.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-4xl">✂️</span>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-white font-bold">
-                              {service.name}
-                            </p>
-                            <p className="text-white/60 text-sm">
-                              {Number(service.price).toLocaleString('vi-VN')} VND
-                            </p>
-                            <p className="text-white/60 text-sm pt-1">
-                              {service.description || "Professional service"}
-                            </p>
-                          </div>
+                          {services
+                            .filter(s => (s.category || "Khác") === category)
+                            .map((service, index) => (
+                              <motion.div
+                                key={service._id}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: index * 0.1 }}
+                                whileHover={{ scale: 1.05, y: -5 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleServiceSelect(service)}
+                                className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2 shadow-lg ${selectedServices.includes(service._id)
+                                  ? "border-blue-500 bg-blue-500/20 shadow-blue-500/20"
+                                  : "border-transparent bg-white/5 hover:border-white/20 hover:bg-white/10"
+                                  }`}
+                              >
+                                <div className="w-full aspect-square bg-gradient-to-br from-blue-600 to-cyan-600 rounded-md flex items-center justify-center overflow-hidden">
+                                  {service.image ? (
+                                    <img
+                                      src={service.image}
+                                      alt={service.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="text-4xl">✂️</span>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-white font-bold">
+                                    {service.name}
+                                  </p>
+                                  <p className="text-white/60 text-sm">
+                                    {Number(service.price).toLocaleString('vi-VN')} VND
+                                  </p>
+                                  <p className="text-white/60 text-sm pt-1">
+                                    {service.description || "Professional service"}
+                                  </p>
+                                </div>
+                                {selectedServices.includes(service._id) && (
+                                  <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white fill-current">
+                                    ✓
+                                  </div>
+                                )}
+                              </motion.div>
+                            ))}
                         </motion.div>
-                      ))}
-                    </motion.div>
+                      </div>
+                    ))}
+
+                    {/* Next step button for multi-selection */}
+                    {selectedServices.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex justify-end mt-8"
+                      >
+                        <button
+                          onClick={() => setStep(2)}
+                          className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg"
+                        >
+                          Next Step: Choose Barber
+                        </button>
+                      </motion.div>
+                    )}
                   </section>
 
                   {/* Step 2: Choose Barber */}
@@ -634,8 +753,8 @@ function AppointmentsPage() {
                       Appointment Summary
                     </h3>
 
-                    {currentService && (
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                    {selectedServicesData.length > 0 && selectedServicesData.map((service) => (
+                      <div key={service._id} className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded flex-shrink-0 flex items-center justify-center text-xl">
                           ✂️
                         </div>
@@ -644,14 +763,14 @@ function AppointmentsPage() {
                             Service
                           </p>
                           <p className="text-sm font-bold text-white">
-                            {currentService.name}
+                            {service.name}
                           </p>
                           <p className="text-xs text-white/60">
-                            {Number(currentService.price).toLocaleString('vi-VN')} VND
+                            {Number(service.price).toLocaleString('vi-VN')} VND
                           </p>
                         </div>
                       </div>
-                    )}
+                    ))}
 
                     {selectedBarber && (
                       <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
@@ -714,12 +833,43 @@ function AppointmentsPage() {
                     )}
 
                     <div className="flex flex-col gap-2 pt-4 border-t border-white/10">
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-white/60">Total Amount</span>
-                        <span className="text-3xl font-bold text-white">
-                          {Number(currentService?.price || 0).toLocaleString('vi-VN')} VND
+                      {/* Voucher Code */}
+                      <p className="text-xs font-bold text-white/50 uppercase tracking-widest">Mã Khuyến Mãi</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={voucherInput}
+                          onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                          placeholder="Nhập mã giảm giá..."
+                          className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 placeholder-white/30 font-bold tracking-widest"
+                        />
+                        <button
+                          onClick={handleApplyVoucher}
+                          disabled={voucherLoading}
+                          className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shrink-0"
+                        >
+                          {voucherLoading ? "..." : "Áp dụng"}
+                        </button>
+                      </div>
+                      {voucherMsg.text && (
+                        <p className={`text-xs font-bold ${voucherMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{voucherMsg.text}</p>
+                      )}
+
+                      {/* Price display */}
+                      <div className="flex justify-between items-baseline mt-2">
+                        <span className="text-white/60">Tạm tính</span>
+                        <span className={`text-lg font-bold ${voucherDiscount > 0 ? 'text-white/40 line-through' : 'text-white'}`}>
+                          {Number(totalSummaryPrice).toLocaleString('vi-VN')} VND
                         </span>
                       </div>
+                      {voucherDiscount > 0 && (
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-green-400 font-bold text-sm">Sau giảm giá -{voucherDiscount}%</span>
+                          <span className="text-2xl font-bold text-green-400">
+                            {Number(totalSummaryPrice * (1 - voucherDiscount / 100)).toLocaleString('vi-VN')} VND
+                          </span>
+                        </div>
+                      )}
                       <p className="text-[10px] text-white/40 text-center">
                         Tax included in total price
                       </p>
@@ -728,12 +878,12 @@ function AppointmentsPage() {
                     <button
                       onClick={handleBookAppointment}
                       disabled={
-                        !selectedService ||
+                        selectedServices.length === 0 ||
                         !selectedBarber ||
                         !appointmentDate ||
                         bookingLoading
                       }
-                      className={`w-full h-12 px-6 rounded-lg font-bold text-base transition-all ${selectedService &&
+                      className={`w-full h-12 px-6 rounded-lg font-bold text-base transition-all ${selectedServices.length > 0 &&
                         selectedBarber &&
                         appointmentDate &&
                         !bookingLoading
@@ -757,203 +907,56 @@ function AppointmentsPage() {
               </div>
             </>
           )}
+        </div>
+      </main>
 
-          {/* Barber/Admin View - Appointments Management */}
-          {(user?.role === "barber" || user?.role === "admin") && (
-            <>
-              {/* Header */}
-              <div className="space-y-4">
-                <h1 className="text-4xl font-bold font-heading">
-                  {user?.role === "admin" ? "All Appointments" : "Manage Appointments"}
-                </h1>
-              </div>
-
-              {/* Filter and Search Section */}
-              <div className="space-y-4 rounded-lg bg-white/5 p-6 border border-white/10">
-                {/* Search Bar */}
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Search by customer name, phone, service, or appointment ID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-white/30"
-                  />
-                </div>
-
-                {/* Filters */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Status Filter */}
-                  <div>
-                    <label className="block text-white/60 text-sm mb-2">
-                      Filter by Status
-                    </label>
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-black focus:outline-none focus:border-blue-500"
+      {/* REVIEW MODAL */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl border border-white/10 p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-white">Đánh giá Dịch Vụ</h3>
+              <button onClick={() => setShowReviewModal(false)} className="text-white/50 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form onSubmit={handleSubmitReview} className="space-y-5">
+              <div>
+                <p className="text-white/60 text-sm mb-3">Mức độ hài lòng</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      type="button"
+                      key={star}
+                      onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                      className={`text-3xl transition-transform hover:scale-125 ${star <= reviewForm.rating ? 'text-yellow-400' : 'text-white/20'}`}
                     >
-                      <option value="all">All Statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </div>
-
-                  {/* Service Filter */}
-                  <div>
-                    <label className="block text-white/60 text-sm mb-2">
-                      Filter by Service
-                    </label>
-                    <select
-                      value={filterService}
-                      onChange={(e) => setFilterService(e.target.value)}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-black focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="all">All Services</option>
-                      {services.map((service) => (
-                        <option key={service._id} value={service._id}>
-                          {service.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Sort */}
-                  <div>
-                    <label className="block text-white/60 text-sm mb-2">
-                      Sort by
-                    </label>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-black focus:outline-none focus:border-blue-500"
-                    >
-                      <option value="date-desc">Newest First</option>
-                      <option value="date-asc">Oldest First</option>
-                      <option value="price-high">Price: High to Low</option>
-                      <option value="price-low">Price: Low to High</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Results Count */}
-                <div className="flex items-center justify-between">
-                  <p className="text-white/60 text-sm">
-                    Showing {filteredAppointments.length} of{" "}
-                    {appointments.length} appointments
-                  </p>
-                  <button
-                    onClick={() => navigate("/scanner")}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors"
-                  >
-                    Scan QR Code
-                  </button>
-                </div>
-              </div>
-
-              {/* Appointments List */}
-              {loading ? (
-                <div className="text-center py-12 text-white/60">
-                  Loading appointments...
-                </div>
-              ) : filteredAppointments.length === 0 ? (
-                <div className="rounded-lg bg-white/5 border border-white/10 p-12 text-center">
-                  <p className="text-white/60 text-lg">
-                    {appointments.length === 0
-                      ? "No appointments scheduled"
-                      : "No appointments match your filters"}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {filteredAppointments.map((appointment) => (
-                    <div
-                      key={appointment._id}
-                      className="rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-all overflow-hidden"
-                    >
-                      <div className="p-6 flex flex-col sm:flex-row justify-between items-start gap-6">
-                        {/* Main Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-3">
-                            <h3 className="text-xl font-bold text-white">
-                              {appointment.serviceId?.name}
-                            </h3>
-                            <span
-                              className={`inline-block px-3 py-1 rounded text-xs font-bold border ${getStatusColor(
-                                appointment.status
-                              )}`}
-                            >
-                              {appointment.status}
-                            </span>
-                          </div>
-
-                          <div className="space-y-2 text-white/80 text-sm">
-                            <p>
-                              <strong>Customer:</strong>{" "}
-                              {appointment.customerId?.name}
-                            </p>
-                            <p>
-                              <strong>Phone:</strong>{" "}
-                              {appointment.customerId?.phone}
-                            </p>
-                            <p>
-                              <strong>Date:</strong>{" "}
-                              {new Date(
-                                appointment.appointmentDate
-                              ).toLocaleString("default", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </p>
-                            <p>
-                              <strong>Price:</strong> ${appointment.totalPrice}
-                            </p>
-                            {appointment.notes && (
-                              <p>
-                                <strong>Notes:</strong> {appointment.notes}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* QR Code Section */}
-                        {appointment.qrCode && (
-                          <div className="flex flex-col items-center gap-3 sm:border-l sm:border-white/10 sm:pl-6">
-                            <div
-                              id={`qr-${appointment._id}`}
-                              className="bg-white p-3 rounded-lg"
-                            >
-                              <QRCodeCanvas
-                                value={JSON.stringify({
-                                  appointmentId: appointment._id,
-                                  appointmentCode: appointment.appointmentId,
-                                })}
-                                size={120}
-                              />
-                            </div>
-                            <button
-                              onClick={() => downloadQRCode(appointment._id)}
-                              className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded transition-colors"
-                            >
-                              Download QR
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                      ★
+                    </button>
                   ))}
                 </div>
-              )}
-            </>
-          )}
+              </div>
+              <div>
+                <label className="block text-white/60 text-sm mb-2">Nhận xét (tùy chọn)</label>
+                <textarea
+                  rows="4"
+                  value={reviewForm.comment}
+                  onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                  placeholder="Dịch vụ rất tốt, Barber tận tình..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 placeholder-white/30"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowReviewModal(false)} className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl">
+                  Hủy
+                </button>
+                <button type="submit" disabled={reviewLoading} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl">
+                  {reviewLoading ? "Đang gửi..." : "Đầy đánh giá"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </main >
-    </div >
+      )}
+    </div>
   );
 }
 

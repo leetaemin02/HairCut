@@ -198,12 +198,47 @@ exports.deleteUser = async (req, res) => {
 exports.getAdminStats = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
+    const totalCustomers = await User.countDocuments({ role: "customer" });
+    const totalBarbers = await User.countDocuments({ role: "barber" });
     const totalServices = await Service.countDocuments({ isActive: true });
     
     // Total revenue from completed appointments
     const completedAppointments = await Appointment.find({ status: "completed" });
     const totalRevenue = completedAppointments.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
     const totalOrders = await Appointment.countDocuments();
+
+    // Data for Pie Chart: Appointments by Status
+    const statusAggregation = await Appointment.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const appointmentsByStatus = statusAggregation.map(item => ({
+      name: item._id === "pending" ? "Chờ xác nhận" :
+            item._id === "confirmed" ? "Đã xác nhận" :
+            item._id === "completed" ? "Đã hoàn thành" :
+            item._id === "cancelled" ? "Đã hủy" : item._id,
+      value: item.count,
+      status: item._id
+    }));
+
+    // Today's Stats
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayAppointments = await Appointment.find({
+      appointmentDate: { $gte: today, $lt: tomorrow }
+    });
+
+    const todayRevenue = todayAppointments
+      .filter(a => a.status === "completed")
+      .reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
 
     // Group revenue by month using aggregation
     const revenueByMonth = await Appointment.aggregate([
@@ -222,19 +257,57 @@ exports.getAdminStats = async (req, res) => {
 
     // Format for frontend chart
     const formattedRevenue = revenueByMonth.map(item => ({
-      month: `Tháng ${item._id.month}`,
+      month: `Th. ${item._id.month}`,
       revenue: item.totalRevenue
     }));
 
     res.status(200).json({
       totalUsers,
+      totalCustomers,
+      totalBarbers,
       totalServices,
       totalRevenue,
       totalOrders,
-      revenueByMonth: formattedRevenue
+      todayRevenue,
+      todayAppointments: todayAppointments.length,
+      revenueByMonth: formattedRevenue,
+      appointmentsByStatus
     });
   } catch (error) {
     console.error("Stats Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get Barber KPIs
+exports.getBarberStats = async (req, res) => {
+  try {
+    const barbers = await User.find({ role: "barber", isActive: true }).select("name profileImage specialty");
+    
+    const completedAppointments = await Appointment.find({ status: "completed" });
+    
+    const barberStats = barbers.map(barber => {
+      const barberApts = completedAppointments.filter(
+        apt => String(apt.barberId) === String(barber._id)
+      );
+      
+      const totalRevenue = barberApts.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
+      
+      return {
+        _id: barber._id,
+        name: barber.name,
+        profileImage: barber.profileImage,
+        specialty: barber.specialty,
+        completedAppointments: barberApts.length,
+        totalRevenue: totalRevenue
+      };
+    });
+    
+    // Sort by revenue descending
+    barberStats.sort((a, b) => b.totalRevenue - a.totalRevenue);
+    
+    res.status(200).json(barberStats);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };

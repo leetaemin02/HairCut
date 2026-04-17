@@ -12,6 +12,10 @@ import PaymentPage from "./pages/PaymentPage";
 import ServiceDetail from "./pages/ServiceDetail";
 import BarberProfile from "./pages/BarberProfile";
 import AdminDashboard from "./pages/AdminDashboard";
+import ServicesPage from "./pages/ServicesPage";
+import AboutPage from "./pages/AboutPage";
+import BarberDashboard from "./pages/BarberDashboard";
+import AIChatbot from "./components/AIChatbot/AIChatbot";
 import "./App.css";
 
 function ProtectedRoute({ children }) {
@@ -67,6 +71,8 @@ function App() {
           }
         />
         <Route path="/services/:id" element={<ServiceDetail />} />
+        <Route path="/services" element={<ServicesPage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="/barbers/:id" element={<BarberProfile />} />
         <Route
           path="/admin"
@@ -76,8 +82,17 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/barber-dashboard"
+          element={
+            <ProtectedRoute>
+              <BarberDashboard />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
+      <AIChatbot />
       <Analytics />
     </BrowserRouter>
   );
