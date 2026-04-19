@@ -1,5 +1,6 @@
 const Groq = require("groq-sdk");
 const Service = require("../models/Service");
+const User = require("../models/User");
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -16,8 +17,13 @@ exports.chatWithAI = async (req, res) => {
     // 1. Fetch current services for context
     const services = await Service.find({ isActive: true });
     const barbers = await User.find({ role: "barber" });
+    
     const servicesContext = services.map(s =>
       `- ${s.name}: Giá ${s.price.toLocaleString('vi-VN')} VNĐ, Thời gian dự kiến: ${s.duration} phút. Mô tả: ${s.description || 'N/A'}`
+    ).join("\n");
+
+    const barbersContext = barbers.map(b =>
+      `- ${b.name}: Chuyên gia về ${b.specialty ? b.specialty.join(', ') : 'N/A'}`
     ).join("\n");
 
     // Check login status

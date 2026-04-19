@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { motion, AnimatePresence } from "framer-motion";
 import "./AIChatbot.css";
 
@@ -37,7 +37,7 @@ const AIChatbot = () => {
       const user = userStr ? JSON.parse(userStr) : null;
 
       // We send the current message, history, and user context
-      const response = await axios.post("/api/ai/chat", {
+      const response = await api.post("/ai/chat", {
         message: message,
         history: chatHistory,
         user: user // Pass user object (contains name, etc.)
