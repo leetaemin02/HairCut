@@ -11,7 +11,7 @@ exports.register = async (req, res) => {
 
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: "Người dùng đã tồn tại" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -34,7 +34,7 @@ exports.register = async (req, res) => {
     );
 
     res.status(201).json({
-      message: "User registered successfully",
+      message: "Đăng ký thành công",
       token,
       user: {
         id: user._id,
@@ -55,12 +55,12 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Thông tin đăng nhập không chính xác" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Mật khẩu không chính xác" });
     }
 
     const token = jwt.sign(
@@ -201,7 +201,7 @@ exports.getAdminStats = async (req, res) => {
     const totalCustomers = await User.countDocuments({ role: "customer" });
     const totalBarbers = await User.countDocuments({ role: "barber" });
     const totalServices = await Service.countDocuments({ isActive: true });
-    
+
     // Total revenue from completed appointments
     const completedAppointments = await Appointment.find({ status: "completed" });
     const totalRevenue = completedAppointments.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
@@ -219,8 +219,8 @@ exports.getAdminStats = async (req, res) => {
 
     const appointmentsByStatus = statusAggregation.map(item => ({
       name: item._id === "pending" ? "Chờ xác nhận" :
-            item._id === "confirmed" ? "Đã xác nhận" :
-            item._id === "completed" ? "Đã hoàn thành" :
+        item._id === "confirmed" ? "Đã xác nhận" :
+          item._id === "completed" ? "Đã hoàn thành" :
             item._id === "cancelled" ? "Đã hủy" : item._id,
       value: item.count,
       status: item._id
@@ -283,16 +283,16 @@ exports.getAdminStats = async (req, res) => {
 exports.getBarberStats = async (req, res) => {
   try {
     const barbers = await User.find({ role: "barber", isActive: true }).select("name profileImage specialty");
-    
+
     const completedAppointments = await Appointment.find({ status: "completed" });
-    
+
     const barberStats = barbers.map(barber => {
       const barberApts = completedAppointments.filter(
         apt => String(apt.barberId) === String(barber._id)
       );
-      
+
       const totalRevenue = barberApts.reduce((acc, curr) => acc + (curr.totalPrice || 0), 0);
-      
+
       return {
         _id: barber._id,
         name: barber.name,
@@ -302,10 +302,10 @@ exports.getBarberStats = async (req, res) => {
         totalRevenue: totalRevenue
       };
     });
-    
+
     // Sort by revenue descending
     barberStats.sort((a, b) => b.totalRevenue - a.totalRevenue);
-    
+
     res.status(200).json(barberStats);
   } catch (error) {
     res.status(500).json({ message: error.message });

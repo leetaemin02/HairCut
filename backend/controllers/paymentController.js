@@ -1,9 +1,9 @@
 const crypto = require("crypto");
 const qs = require("qs");
+const mongoose = require("mongoose");
 const Appointment = require("../models/Appointment");
 const Service = require("../models/Service");
 
-// Chuẩn hóa hàm sortObject theo đúng tài liệu VNPAY
 // Chuẩn hóa hàm sortObject theo đúng tài liệu VNPAY
 function sortObject(obj) {
     let sorted = {};
@@ -23,7 +23,7 @@ function sortObject(obj) {
 
 // Function to format Vietnam time (GMT+7)
 function formatVNTime(date) {
-    const pad = (n) => (n < 10 ? '0' + n : n);
+    const pad = (n) => (n < 10 ? "0" + n : n);
     return date.getFullYear().toString() +
         pad(date.getMonth() + 1) +
         pad(date.getDate()) +
@@ -35,11 +35,24 @@ function formatVNTime(date) {
 exports.createPayment = async (req, res) => {
     try {
         const { appointmentId } = req.body;
-        const appointment = await Appointment.findById(appointmentId).populate("serviceId");
+
+        if (!appointmentId) {
+            return res.status(400).json({ message: "appointmentId is required" });
+        }
+
+        // Tìm kiếm linh hoạt
+        let query = {};
+        if (mongoose.Types.ObjectId.isValid(appointmentId)) {
+            query = { _id: appointmentId };
+        } else {
+            query = { appointmentId: appointmentId };
+        }
+
+        const appointment = await Appointment.findOne(query).populate("serviceIds");
 
         if (!appointment) return res.status(404).json({ message: "Appointment not found" });
-        if (appointment.status !== "confirmed") return res.status(400).json({ message: "Only confirmed appointments can be paid." });
-        if (appointment.paymentStatus === "paid") return res.status(400).json({ message: "Appointment is already paid." });
+        if (appointment.status !== "confirmed") return res.status(400).json({ message: "Chỉ những lịch hẹn đã xác nhận mới có thể thanh toán." });
+        if (appointment.paymentStatus === "paid") return res.status(400).json({ message: "Lịch hẹn này đã được thanh toán." });
 
         // Retrieve config from env
         const tmnCode = process.env.VNPAY_TMN_CODE || "CPY02998";
@@ -59,7 +72,6 @@ exports.createPayment = async (req, res) => {
         const txnRef = appointment.appointmentId;
 
         // Xử lý IP từ Vercel (rất quan trọng để tránh lỗi 70)
-        // Vercel trả về chuỗi IP dạng: "IP_client, IP_proxy" -> Phải cắt lấy IP đầu tiên
         let ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
         if (typeof ipAddr === 'string' && ipAddr.includes(',')) {
             ipAddr = ipAddr.split(',')[0].trim();
@@ -143,8 +155,11 @@ exports.handleReturn = async (req, res) => {
                     { isCounted: true },
                     { new: false }
                 );
-                if (updatedAppt) {
-                    await Service.findByIdAndUpdate(updatedAppt.serviceId, { $inc: { completedCount: 1 } });
+                if (updatedAppt && updatedAppt.serviceIds && updatedAppt.serviceIds.length > 0) {
+                    await Service.updateMany(
+                        { _id: { $in: updatedAppt.serviceIds } },
+                        { $inc: { completedCount: 1 } }
+                    );
                 }
                 return res.redirect(`${frontendUrl}/profile?payment=success&ref=${txnRef}`);
             } else {
@@ -203,12 +218,14 @@ exports.handleIPN = async (req, res) => {
                     { isCounted: true },
                     { new: false }
                 );
-                if (winningAppt) {
-                    await Service.findByIdAndUpdate(winningAppt.serviceId, { $inc: { completedCount: 1 } });
+                if (winningAppt && winningAppt.serviceIds && winningAppt.serviceIds.length > 0) {
+                    await Service.updateMany(
+                        { _id: { $in: winningAppt.serviceIds } },
+                        { $inc: { completedCount: 1 } }
+                    );
                 }
                 return res.status(200).json({ RspCode: '00', Message: 'Confirm Success' });
             } else {
-                // Payment failed, you might want to update status to "failed" here depending on your logic
                 return res.status(200).json({ RspCode: '00', Message: 'Success (Payment failed)' });
             }
         } else {

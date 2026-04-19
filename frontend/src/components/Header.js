@@ -34,23 +34,23 @@ function Header({ user }) {
                     >
                         Dashboard
                     </button>
+                    <button
+                        onClick={() => {
+                            if (user?.role === "barber") navigate("/barber-dashboard");
+                            else navigate("/services");
+                        }}
+                        className={`font-serif text-[18px] transition-colors ${(location.pathname === "/services" || location.pathname === "/barber-dashboard") ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
+                    >
+                        {user?.role === "barber" ? "Barber Portal" : "Services"}
+                    </button>
                     {user?.role !== "admin" && (
                         <button
-                            onClick={() => {
-                                if (user?.role === "barber") navigate("/barber-dashboard");
-                                else navigate("/services");
-                            }}
-                            className={`font-serif text-[18px] transition-colors ${(location.pathname === "/services" || location.pathname === "/barber-dashboard") ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
+                            onClick={() => navigate("/profile")}
+                            className={`font-serif text-[18px] transition-colors ${location.pathname === "/profile" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
                         >
-                            {user?.role === "barber" ? "Barber Portal" : "Services"}
+                            Customer
                         </button>
                     )}
-                    <button
-                        onClick={() => navigate("/profile")}
-                        className={`font-serif text-[18px] transition-colors ${location.pathname === "/profile" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}
-                    >
-                        Customer
-                    </button>
                     <button
                         onClick={() => navigate("/about")}
                         className={`font-serif text-[18px] transition-colors ${location.pathname === "/about" ? "text-white font-semibold underline underline-offset-8" : "text-white/80 hover:text-white"}`}

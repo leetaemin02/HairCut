@@ -15,7 +15,7 @@ import {
   Legend
 } from "recharts";
 
-const CATEGORIES = ["Cắt tóc", "Thư giãn", "Hóa chất", "Dịch vụ khác"];
+const CATEGORIES = ["Dịch vụ Cắt tóc", "Dịch vụ Thư giãn", "Dịch vụ Hóa chất", "Dịch vụ khác"];
 
 function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -851,7 +851,7 @@ function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="pt-4 flex gap-4"><button type="button" onClick={() => setIsVoucherModalOpen(false)} className="flex-1 py-3 bg-[#282a31] hover:bg-[#33343c] text-white rounded-xl font-bold">Hủy</button><button type="submit" className="flex-1 py-3 bg-[#1754cf] text-white rounded-xl font-bold shadow-[0_5px_15px_rgba(23,84,207,0.3)]">Phát Hành Của Hàng</button></div>
+              <div className="pt-4 flex gap-4"><button type="button" onClick={() => setIsVoucherModalOpen(false)} className="flex-1 py-3 bg-[#282a31] hover:bg-[#33343c] text-white rounded-xl font-bold">Hủy</button><button type="submit" className="flex-1 py-3 bg-[#1754cf] text-white rounded-xl font-bold shadow-[0_5px_15px_rgba(23,84,207,0.3)]">Phát Hành Ngay</button></div>
             </form>
           </div>
         </div>

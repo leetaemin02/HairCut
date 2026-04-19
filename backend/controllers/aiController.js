@@ -15,8 +15,8 @@ exports.chatWithAI = async (req, res) => {
 
     // 1. Fetch current services for context
     const services = await Service.find({ isActive: true });
-    
-    const servicesContext = services.map(s => 
+    const barbers = await User.find({ role: "barber" });
+    const servicesContext = services.map(s =>
       `- ${s.name}: Giá ${s.price.toLocaleString('vi-VN')} VNĐ, Thời gian dự kiến: ${s.duration} phút. Mô tả: ${s.description || 'N/A'}`
     ).join("\n");
 
@@ -38,12 +38,15 @@ exports.chatWithAI = async (req, res) => {
       DANH SÁCH DỊCH VỤ CỦA CHÚNG TÔI:
       ${servicesContext}
 
+      DANH SÁCH THỢ CẮT TÓC/ BARBER CỦA CHÚNG TÔI:
+      ${barbersContext}
+
       QUY TẮC PHẢN HỒI (BẮT BUỘC):
-      - TRẢ LỜI NGẮN: Mỗi lần trả lời không quá 2-3 câu. Không chào hỏi rườm rà ở mọi tin nhắn.
-      - BÁO GIÁ NHANH: Nếu khách hỏi giá, chỉ nêu Tên dịch vụ + Giá + Thời gian.
+      - TRẢ LỜI NGẮN: Mỗi lần trả lời không quá 5-7 câu. Không chào hỏi rườm rà ở mọi tin nhắn.
+      - BÁO GIÁ NHANH: Nếu khách hỏi giá, LUÔN LUÔN trả lời Dạ Anh + Tên dịch vụ + Giá + Thời gian.
       - ĐẶT LỊCH: 
-        + Nếu CHƯA đăng nhập: Chỉ được cung cấp thông tin, YÊU CẦU khách phải Đăng Nhập tại link /login thì mới có thể đặt lịch hẹn.
-        + Nếu ĐÃ đăng nhập: Khuyến khích khách đặt lịch ngay tại link /appointments.
+        + Nếu CHƯA đăng nhập: Chỉ được cung cấp thông tin, YÊU CẦU khách phải Đăng Nhập thì mới có thể đặt lịch hẹn.
+        + Nếu ĐÃ đăng nhập: Khuyến khích khách đặt lịch ngay tại Trang chủ.
       - KHÔNG LAN MAN: Không giải thích quá nhiều về quy trình trừ khi khách hỏi chi tiết.
       - TRÁNH TỪ THỪA: Bỏ qua các câu như "Tôi có thể giúp gì thêm không?" nếu không cần thiết.
     `;
@@ -59,7 +62,7 @@ exports.chatWithAI = async (req, res) => {
         const role = item.role === "model" ? "assistant" : item.role;
         // Map parts[0].text to content
         const content = item.parts && item.parts[0] ? item.parts[0].text : "";
-        
+
         if (content) {
           messages.push({ role, content });
         }
@@ -86,11 +89,11 @@ exports.chatWithAI = async (req, res) => {
     });
   } catch (error) {
     console.error("Groq AI Chat Error:", error);
-    
+
     // Handle Rate Limits (429) specifically
     if (error.status === 429) {
-      return res.status(429).json({ 
-        message: "Hệ thống đang bận một chút. Bạn vui lòng đợi 30 giây rồi thử lại nhé!" 
+      return res.status(429).json({
+        message: "Hệ thống đang bận một chút. Bạn vui lòng đợi 30 giây rồi thử lại nhé!"
       });
     }
 

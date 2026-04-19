@@ -82,14 +82,14 @@ function ServiceDetail() {
             {/* Booking Card */}
             <div className="top-28 bg-white/5 rounded-3xl p-8 shadow-xl backdrop-blur-md">
               <div className="mb-6">
-                <span className="text-slate-400 text-sm uppercase tracking-widest font-bold">Premium Service</span>
+                <span className="text-slate-400 text-sm uppercase tracking-widest font-bold">Dịch vụ chăm sóc</span>
                 <div className="flex items-baseline gap-2 mt-2">
                   <span className="text-4xl font-bold text-white tracking-widest">{Number(service.price).toLocaleString('vi-VN')}</span>
                   <span className="text-blue-400 font-bold">VND</span>
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-slate-400">
-                  <span>Duration:</span>
-                  <span className="text-white font-medium">{Number(service.duration)} mins</span>
+                  <span>Thời gian dự kiến:</span>
+                  <span className="text-white font-medium">{Number(service.duration)} phút</span>
                 </div>
               </div>
 
@@ -97,18 +97,18 @@ function ServiceDetail() {
                 onClick={() => navigate("/appointments", { state: { serviceId: service._id } })}
                 className="w-full py-4 bg-white text-navy font-serif font-bold text-xl rounded-full hover:bg-white/90 transition-all shadow-lg"
               >
-                Book This Service
+                Đặt lịch ngay
               </button>
 
               <p className="text-xs text-center text-slate-500 mt-4 italic">
-                * Prices may vary based on specific requirements
+                * Giá có thể thay đổi tùy theo yêu cầu cụ thể
               </p>
             </div>
 
             {/* Specialist Barbers */}
             <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
-              <h3 className="text-xl font-serif font-bold mb-6 flex items-center gap-2">
-                <span>✂️</span> Service Specialists
+              <h3 className="text-xl font-serif font-bold mb-6 flex items-center gap-2 text-red-400">
+                Thợ chuyên nghiệp
               </h3>
               <div className="space-y-6">
                 {barbers.length > 0 ? (
@@ -123,12 +123,12 @@ function ServiceDetail() {
                       </div>
                       <div>
                         <h4 className="font-bold text-white group-hover:text-blue-400 transition-colors">{barber.name}</h4>
-                        <p className="text-sm text-slate-500 italic">Specialist in {service.name}</p>
+                        <p className="text-sm text-slate-500 italic">Chuyên gia trong lĩnh vực {service.name}</p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-slate-500 text-sm">Our master barbers are all trained for this service.</p>
+                  <p className="text-slate-500 text-sm">Thợ của chúng tôi đều được đào tạo cho dịch vụ này.</p>
                 )}
               </div>
             </div>
