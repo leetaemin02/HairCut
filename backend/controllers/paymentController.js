@@ -1,0 +1,222 @@
+const crypto = require("crypto");
+const qs = require("qs");
+const mongoose = require("mongoose");
+const Appointment = require("../models/Appointment");
+const Service = require("../models/Service");
+
+// Chuẩn hóa hàm sortObject theo đúng tài liệu VNPAY
+function sortObject(obj) {
+    let sorted = {};
+    let str = [];
+    let key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            str.push(encodeURIComponent(key));
+        }
+    }
+    str.sort();
+    for (key = 0; key < str.length; key++) {
+        sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+    }
+    return sorted;
+}
+
+// Function to format Vietnam time (GMT+7)
+function formatVNTime(date) {
+    const pad = (n) => (n < 10 ? '0' + n : n);
+    return date.getFullYear().toString() +
+        pad(date.getMonth() + 1) +
+        pad(date.getDate()) +
+        pad(date.getHours()) +
+        pad(date.getMinutes()) +
+        pad(date.getSeconds());
+}
+
+exports.createPayment = async (req, res) => {
+    try {
+        const { appointmentId } = req.body;
+
+        if (!appointmentId) {
+            return res.status(400).json({ message: "appointmentId is required" });
+        }
+
+        // Tìm kiếm linh hoạt: theo _id hoặc mã appointmentId tùy chỉnh
+        let query = {};
+        if (mongoose.Types.ObjectId.isValid(appointmentId)) {
+            query = { _id: appointmentId };
+        } else {
+            query = { appointmentId: appointmentId };
+        }
+
+        const appointment = await Appointment.findOne(query).populate("serviceIds");
+
+        if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+        if (appointment.status !== "confirmed") return res.status(400).json({ message: "Chỉ những lịch hẹn đã xác nhận mới có thể thanh toán." });
+        if (appointment.paymentStatus === "paid") return res.status(400).json({ message: "Lịch hẹn này đã được thanh toán." });
+
+        // Retrieve config from env
+        const tmnCode = process.env.VNPAY_TMN_CODE || "CPY02998";
+        const hashSecret = process.env.VNPAY_HASH_SECRET || "XNMCOIZCDYJTTAVMSIUBYFVMNCOYFCCO";
+
+        let returnUrl = process.env.VNPAY_RETURN_URL;
+        const currentHost = req.headers.host;
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+
+        if (!returnUrl || returnUrl.includes('localhost')) {
+            returnUrl = `${protocol}://${currentHost}/api/payment/vnpay-return`;
+        }
+
+        const url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+
+        const amount = Math.floor(appointment.totalPrice * 100);
+        const txnRef = appointment.appointmentId;
+
+        let ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+        if (typeof ipAddr === 'string' && ipAddr.includes(',')) {
+            ipAddr = ipAddr.split(',')[0].trim();
+        }
+
+        const date = new Date();
+        const vnOffset = 7 * 60 * 60 * 1000;
+        const localOffset = date.getTimezoneOffset() * 60000;
+        const vnDate = new Date(date.getTime() + localOffset + vnOffset);
+
+        const createDate = formatVNTime(vnDate);
+        const expireDateObj = new Date(vnDate.getTime() + 15 * 60 * 1000);
+        const expireDate = formatVNTime(expireDateObj);
+
+        let vnpParams = {
+            'vnp_Version': '2.1.0',
+            'vnp_Command': 'pay',
+            'vnp_TmnCode': tmnCode.trim(),
+            'vnp_Locale': 'vn',
+            'vnp_CurrCode': 'VND',
+            'vnp_TxnRef': txnRef.toString(),
+            'vnp_OrderInfo': 'Thanh toan don hang ' + txnRef,
+            'vnp_OrderType': 'other',
+            'vnp_Amount': amount.toString(),
+            'vnp_ReturnUrl': returnUrl.trim(),
+            'vnp_IpAddr': ipAddr,
+            'vnp_CreateDate': createDate,
+            'vnp_ExpireDate': expireDate
+        };
+
+        vnpParams = sortObject(vnpParams);
+        const signData = qs.stringify(vnpParams, { encode: false });
+        const hmac = crypto.createHmac("sha512", hashSecret.trim());
+        const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
+
+        vnpParams['vnp_SecureHash'] = signed;
+        const paymentUrl = url + '?' + qs.stringify(vnpParams, { encode: false });
+
+        res.status(200).json({ payUrl: paymentUrl });
+    } catch (error) {
+        console.error("[VNPAY createPayment Error]:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+exports.handleReturn = async (req, res) => {
+    try {
+        let vnpParams = req.query;
+        let secureHash = vnpParams['vnp_SecureHash'];
+
+        delete vnpParams['vnp_SecureHash'];
+        delete vnpParams['vnp_SecureHashType'];
+
+        const hashSecret = process.env.VNPAY_HASH_SECRET || "XNMCOIZCDYJTTAVMSIUBYFVMNCOYFCCO";
+
+        vnpParams = sortObject(vnpParams);
+        const signData = qs.stringify(vnpParams, { encode: false });
+        const hmac = crypto.createHmac("sha512", hashSecret.trim());
+        const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
+
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+        if (secureHash === signed) {
+            const responseCode = vnpParams['vnp_ResponseCode'];
+            const txnRef = vnpParams['vnp_TxnRef'];
+
+            if (responseCode === "00") {
+                await Appointment.findOneAndUpdate({ appointmentId: txnRef }, { paymentStatus: "paid" });
+                const updatedAppt = await Appointment.findOneAndUpdate(
+                    { appointmentId: txnRef, isCounted: false },
+                    { isCounted: true },
+                    { new: false }
+                );
+                if (updatedAppt && updatedAppt.serviceIds && updatedAppt.serviceIds.length > 0) {
+                    await Service.updateMany(
+                        { _id: { $in: updatedAppt.serviceIds } },
+                        { $inc: { completedCount: 1 } }
+                    );
+                }
+                return res.redirect(`${frontendUrl}/profile?payment=success&ref=${txnRef}`);
+            } else {
+                return res.redirect(`${frontendUrl}/profile?payment=failed&code=${responseCode}`);
+            }
+        } else {
+            return res.redirect(`${frontendUrl}/profile?payment=invalid`);
+        }
+    } catch (error) {
+        console.error("[VNPAY handleReturn Error]:", error);
+        res.status(500).json({ message: "Server error handling VNPAY return" });
+    }
+};
+
+exports.handleIPN = async (req, res) => {
+    try {
+        let vnpParams = req.query;
+        let secureHash = vnpParams['vnp_SecureHash'];
+
+        delete vnpParams['vnp_SecureHash'];
+        delete vnpParams['vnp_SecureHashType'];
+
+        const hashSecret = process.env.VNPAY_HASH_SECRET;
+        if (!hashSecret) return res.status(200).json({ RspCode: '99', Message: 'Missing Hash Secret config' });
+
+        vnpParams = sortObject(vnpParams);
+        const signData = qs.stringify(vnpParams, { encode: false });
+        const hmac = crypto.createHmac("sha512", hashSecret.trim());
+        const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
+
+        if (secureHash === signed) {
+            const txnRef = vnpParams['vnp_TxnRef'];
+            const responseCode = vnpParams['vnp_ResponseCode'];
+            const vnpAmount = vnpParams['vnp_Amount'];
+
+            const appt = await Appointment.findOne({ appointmentId: txnRef });
+
+            if (!appt) return res.status(200).json({ RspCode: '01', Message: 'Order not found' });
+
+            const expectedAmount = Math.round(appt.totalPrice) * 100;
+            if (expectedAmount.toString() !== vnpAmount.toString()) {
+                return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
+            }
+
+            if (appt.paymentStatus === 'paid') return res.status(200).json({ RspCode: '02', Message: 'Order already confirmed' });
+
+            if (responseCode === "00" || responseCode === "07") {
+                await Appointment.findOneAndUpdate({ appointmentId: txnRef }, { paymentStatus: "paid" });
+                const winningAppt = await Appointment.findOneAndUpdate(
+                    { appointmentId: txnRef, isCounted: false },
+                    { isCounted: true },
+                    { new: false }
+                );
+                if (winningAppt && winningAppt.serviceIds && winningAppt.serviceIds.length > 0) {
+                    await Service.updateMany(
+                        { _id: { $in: winningAppt.serviceIds } },
+                        { $inc: { completedCount: 1 } }
+                    );
+                }
+                return res.status(200).json({ RspCode: '00', Message: 'Confirm Success' });
+            } else {
+                return res.status(200).json({ RspCode: '00', Message: 'Success (Payment failed)' });
+            }
+        } else {
+            return res.status(200).json({ RspCode: '97', Message: 'Invalid Checksum' });
+        }
+    } catch (error) {
+        console.error("[VNPAY IPN Error]:", error);
+        res.status(200).json({ RspCode: '99', Message: 'Unknown error' });
+    }
+};
