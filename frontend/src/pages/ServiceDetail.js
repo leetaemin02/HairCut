@@ -95,7 +95,7 @@ function ServiceDetail() {
 
               <button
                 onClick={() => navigate("/appointments", { state: { serviceId: service._id } })}
-                className="w-full py-4 bg-white text-navy font-serif font-bold text-xl rounded-full hover:bg-white/90 transition-all shadow-lg"
+                className="w-full py-4 bg-white text-navy font-serif font-bold text-xl rounded-md hover:bg-white/90 transition-all shadow-lg"
               >
                 Đặt lịch ngay
               </button>

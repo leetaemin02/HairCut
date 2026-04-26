@@ -18,13 +18,13 @@ module.exports = {
     // Override toàn bộ borderRadius scale → sắc nét, phong cách AI
     borderRadius: {
       "none": "0px",
-      "sm":   "2px",
-      DEFAULT: "4px",
-      "md":   "5px",
-      "lg":   "6px",
-      "xl":   "8px",
-      "2xl":  "10px",
-      "3xl":  "12px",
+      "sm":   "0.25rem",
+      DEFAULT: "0.5rem",
+      "md":   "0.75rem",
+      "lg":   "1rem",
+      "xl":   "1.25rem",
+      "2xl":  "1.5rem",
+      "3xl":  "2rem",
       "full": "9999px",
     },
     // Loại bỏ boxShadow mặc định — giữ flat UI phong cách AI

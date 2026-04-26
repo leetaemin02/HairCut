@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { appointmentAPI, authAPI, paymentAPI } from "../services/api";
+import { appointmentAPI, authAPI, paymentAPI, reviewAPI } from "../services/api";
 import { motion, AnimatePresence } from "framer-motion";
 
 function BarberDashboard() {
@@ -8,6 +8,7 @@ function BarberDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ratingInfo, setRatingInfo] = useState({ avgRating: 5.0, reviewCount: 0 });
   const navigate = useNavigate();
 
   // Profile Edit States
@@ -41,20 +42,27 @@ function BarberDashboard() {
 
     // Set initial user data from local storage
     setUser(parsedUser);
-    
+
     // Fetch full profile from DB
     const fetchFullProfile = async () => {
       try {
         const res = await authAPI.getProfile();
         setUser(res.data);
-        localStorage.setItem("user", JSON.stringify({...parsedUser, ...res.data}));
+        localStorage.setItem("user", JSON.stringify({ ...parsedUser, ...res.data }));
         setProfileData({
           name: res.data.name || "",
           phone: res.data.phone || "",
           specialty: res.data.specialty ? (Array.isArray(res.data.specialty) ? res.data.specialty.join(", ") : res.data.specialty) : "",
           profileImage: res.data.profileImage || ""
         });
-      } catch(err) {
+
+        // Fetch rating info
+        const statsRes = await reviewAPI.getBarberRatingStats();
+        const myStats = statsRes.data[String(res.data._id || res.data.id)];
+        if (myStats) {
+          setRatingInfo(myStats);
+        }
+      } catch (err) {
         console.error("Error fetching full profile:", err);
         setProfileData({
           name: parsedUser.name || "",
@@ -64,7 +72,7 @@ function BarberDashboard() {
         });
       }
     };
-    
+
     fetchFullProfile();
     fetchAppointments(parsedUser);
   }, [navigate]);
@@ -73,7 +81,7 @@ function BarberDashboard() {
     try {
       setLoading(true);
       const response = await appointmentAPI.getAppointments();
-      
+
       // Backend already filters by barberId for role 'barber', 
       // but just to be safe if admin logs in and opens this page:
       const currentId = currentUser._id || currentUser.id;
@@ -134,14 +142,14 @@ function BarberDashboard() {
   const updateAptStatus = async (id, status) => {
     try {
       if (status === "completed") {
-         // Should checkout instead of generic update directly
-         const apt = appointments.find(a => a._id === id);
-         setCheckoutApt(apt);
-         setVoucherCode("");
-         setPaymentMethod("cash");
-         setCheckoutError("");
-         setShowCheckout(true);
-         return;
+        // Should checkout instead of generic update directly
+        const apt = appointments.find(a => a._id === id);
+        setCheckoutApt(apt);
+        setVoucherCode("");
+        setPaymentMethod("cash");
+        setCheckoutError("");
+        setShowCheckout(true);
+        return;
       }
       await appointmentAPI.updateAppointment(id, { status });
       fetchAppointments(user);
@@ -156,24 +164,24 @@ function BarberDashboard() {
     setCheckoutError("");
     try {
       if (paymentMethod === "cash") {
-         await appointmentAPI.updateAppointment(checkoutApt._id, { 
-             status: "completed", 
-             paymentStatus: "completed", 
-             voucherCode: voucherCode || undefined 
-         });
-         setShowCheckout(false);
-         fetchAppointments(user);
+        await appointmentAPI.updateAppointment(checkoutApt._id, {
+          status: "completed",
+          paymentStatus: "completed",
+          voucherCode: voucherCode || undefined
+        });
+        setShowCheckout(false);
+        fetchAppointments(user);
       } else if (paymentMethod === "vnpay") {
-         // Apply voucher first if any, then create payment
-         if (voucherCode) {
-             await appointmentAPI.updateAppointment(checkoutApt._id, { voucherCode });
-         }
-         const res = await paymentAPI.createPayment({ appointmentId: checkoutApt._id });
-         if (res.data?.payUrl) {
-            window.location.href = res.data.payUrl;
-         } else {
-            setCheckoutError("Không thể tạo link thanh toán VNPAY.");
-         }
+        // Apply voucher first if any, then create payment
+        if (voucherCode) {
+          await appointmentAPI.updateAppointment(checkoutApt._id, { voucherCode });
+        }
+        const res = await paymentAPI.createPayment({ appointmentId: checkoutApt._id });
+        if (res.data?.payUrl) {
+          window.location.href = res.data.payUrl;
+        } else {
+          setCheckoutError("Không thể tạo link thanh toán VNPAY.");
+        }
       }
     } catch (err) {
       console.error(err);
@@ -212,14 +220,20 @@ function BarberDashboard() {
             The Blue Blade
           </h2>
         </div>
-        
+
         <div className="flex items-center gap-4">
-           {/* Replace "Obsidian Groom" text to right side or omit it in favor of right alignment */}
-           <div className="text-right hidden sm:block">
+          {/* Replace "Obsidian Groom" text to right side or omit it in favor of right alignment */}
+          <div className="text-right hidden sm:block">
             <p className="text-xs font-bold text-[#c3c6d6] uppercase tracking-widest">Barber Portal</p>
             <h1 className="text-sm font-bold text-white">Welcome, {user.name}</h1>
           </div>
-          <button 
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="px-5 py-2 border border-[#282a31] bg-[#1c2230] rounded-lg hover:bg-[#282a31] text-white font-bold text-sm ml-4 transition-all"
+          >
+            Về Website
+          </button>
+          <button
             onClick={handleLogout}
             className="text-[#ffb4ab] text-sm font-bold bg-[#ffb4ab]/10 px-4 py-2 rounded-lg hover:bg-[#ffb4ab]/20 transition-colors ml-4"
           >
@@ -229,91 +243,104 @@ function BarberDashboard() {
       </header>
 
       <main className="p-4 mt-6 max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* LEFT COLUMN: PROFILE */}
         <section className="lg:col-span-3 space-y-6">
           <div className="bg-[#1c2230] rounded-xl p-6 border border-[#282a31]">
             <div className="flex items-center justify-between mb-6">
-               <h2 className="text-xl font-bold text-white">Profile</h2>
-               {!isEditingProfile && (
-                  <button onClick={() => setIsEditingProfile(true)} className="text-[#1754cf] text-sm font-bold hover:underline">Edit</button>
-               )}
+              <h2 className="text-xl font-bold text-white">Profile</h2>
+              {!isEditingProfile && (
+                <button onClick={() => setIsEditingProfile(true)} className="text-[#1754cf] text-sm font-bold hover:underline">Edit</button>
+              )}
             </div>
 
             <div className="flex flex-col items-center mb-6">
-               <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-[#1754cf]/30 bg-[#111621] mb-4">
-                 <img 
-                   src={user.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
-                   alt={user.name} 
-                   className="w-full h-full object-cover"
-                 />
-               </div>
-               {!isEditingProfile && (
-                 <div className="text-center">
-                   <h3 className="text-xl font-bold text-white">{user.name}</h3>
-                   <p className="text-[#1754cf] font-medium text-sm mt-1">{Array.isArray(user.specialty) ? user.specialty.join(", ") : (user.specialty || "Professional Barber")}</p>
-                   <p className="text-[#c3c6d6] text-sm mt-2">{user.phone || "No phone added"}</p>
-                 </div>
-               )}
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-[#1754cf]/30 bg-[#111621] mb-4">
+                <img
+                  src={user.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {!isEditingProfile && (
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-white">{user.name}</h3>
+                  <p className="text-[#1754cf] font-medium text-sm mt-1">{Array.isArray(user.specialty) ? user.specialty.join(", ") : (user.specialty || "Professional Barber")}</p>
+                  <p className="text-[#c3c6d6] text-sm mt-2">{user.phone || "No phone added"}</p>
+                   
+                   {/* Star Rating Display */}
+                   <div className="flex items-center justify-center gap-1 mt-3">
+                      <div className="flex text-yellow-400">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className="text-lg">
+                            {i < Math.floor(ratingInfo.avgRating) ? "★" : "☆"}
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-white font-bold text-sm ml-1">{ratingInfo.avgRating}</span>
+                      <span className="text-[#c3c6d6] text-xs ml-1">({ratingInfo.reviewCount})</span>
+                   </div>
+                </div>
+              )}
             </div>
 
             {isEditingProfile && (
-               <form onSubmit={handleUpdateProfile} className="space-y-4">
-                 <div>
-                    <label className="block text-xs font-bold text-[#c3c6d6] mb-1">Name</label>
-                    <input 
-                      type="text" 
-                      value={profileData.name} 
-                      onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                      className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1754cf]"
-                      required
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-[#c3c6d6] mb-1">Phone</label>
-                    <input 
-                      type="text" 
-                      value={profileData.phone} 
-                      onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                      className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1754cf]"
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-[#c3c6d6] mb-1">Specialty</label>
-                    <input 
-                      type="text" 
-                      value={profileData.specialty} 
-                      onChange={(e) => setProfileData({...profileData, specialty: e.target.value})}
-                      className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1754cf]"
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-[#c3c6d6] mb-1">Avatar Image URL</label>
-                    <input 
-                      type="text" 
-                      placeholder="https://..."
-                      value={profileData.profileImage} 
-                      onChange={(e) => setProfileData({...profileData, profileImage: e.target.value})}
-                      className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1754cf]"
-                    />
-                 </div>
-                 <div className="flex gap-2 pt-2">
-                    <button 
-                      type="button" 
-                      onClick={() => setIsEditingProfile(false)}
-                      className="flex-1 bg-[#282a31] text-white py-2 rounded-lg text-sm font-bold hover:bg-[#33343c]"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="submit" 
-                      disabled={savingProfile}
-                      className="flex-1 bg-[#1754cf] text-white py-2 rounded-lg text-sm font-bold hover:bg-[#1754cf]/80 disabled:opacity-50"
-                    >
-                      {savingProfile ? "Saving..." : "Save"}
-                    </button>
-                 </div>
-               </form>
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={profileData.name}
+                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                    className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1754cf]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] mb-1">Phone</label>
+                  <input
+                    type="text"
+                    value={profileData.phone}
+                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                    className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1754cf]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] mb-1">Specialty</label>
+                  <input
+                    type="text"
+                    value={profileData.specialty}
+                    onChange={(e) => setProfileData({ ...profileData, specialty: e.target.value })}
+                    className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1754cf]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] mb-1">Avatar Image URL</label>
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={profileData.profileImage}
+                    onChange={(e) => setProfileData({ ...profileData, profileImage: e.target.value })}
+                    className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#1754cf]"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    className="flex-1 bg-[#282a31] text-white py-2 rounded-lg text-sm font-bold hover:bg-[#33343c]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingProfile}
+                    className="flex-1 bg-[#1754cf] text-white py-2 rounded-lg text-sm font-bold hover:bg-[#1754cf]/80 disabled:opacity-50"
+                  >
+                    {savingProfile ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </form>
             )}
 
             {updateMsg && (
@@ -398,7 +425,7 @@ function BarberDashboard() {
                       <p className="text-[#c3c6d6] text-sm mb-3 opacity-80">
                         {apt.serviceId?.name || "General Service"}
                       </p>
-                      
+
                       {apt.notes && (
                         <div className="bg-[#111621] p-3 rounded-lg border border-[#282a31]/50 text-sm text-[#ffb599] font-medium italic mb-3">
                           "{apt.notes}"
@@ -406,22 +433,22 @@ function BarberDashboard() {
                       )}
 
                       <div className="flex gap-2 mt-4 items-center flex-wrap">
-                        <select 
-                           value={apt.status} 
-                           onChange={(e) => updateAptStatus(apt._id, e.target.value)}
-                           className="bg-[#111621] text-xs font-bold text-[#c3c6d6] border border-[#282a31] rounded-lg px-3 py-2 outline-none focus:border-[#1754cf] hover:border-[#434654] transition-colors appearance-none cursor-pointer"
-                           style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, #c3c6d6 50%), linear-gradient(135deg, #c3c6d6 50%, transparent 50%)', backgroundPosition: 'calc(100% - 15px) calc(1em + 2px), calc(100% - 10px) calc(1em + 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
+                        <select
+                          value={apt.status}
+                          onChange={(e) => updateAptStatus(apt._id, e.target.value)}
+                          className="bg-[#111621] text-xs font-bold text-[#c3c6d6] border border-[#282a31] rounded-lg px-3 py-2 outline-none focus:border-[#1754cf] hover:border-[#434654] transition-colors appearance-none cursor-pointer"
+                          style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, #c3c6d6 50%), linear-gradient(135deg, #c3c6d6 50%, transparent 50%)', backgroundPosition: 'calc(100% - 15px) calc(1em + 2px), calc(100% - 10px) calc(1em + 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
                         >
-                           <option value="pending">Pending</option>
-                           <option value="confirmed">Confirmed</option>
-                           <option value="cancelled">Cancelled</option>
-                           <option value="completed">✔ Hoàn thành (Thanh toán)</option>
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="cancelled">Cancelled</option>
+                          <option value="completed">✔ Hoàn thành (Thanh toán)</option>
                         </select>
-                        <button 
-                           onClick={() => updateAptStatus(apt._id, "completed")}
-                           className="bg-green-500/10 text-green-400 hover:bg-green-500/20 px-4 py-2 rounded-lg text-xs font-bold border border-green-500/20 transition-colors ml-auto"
+                        <button
+                          onClick={() => updateAptStatus(apt._id, "completed")}
+                          className="bg-green-500/10 text-green-400 hover:bg-green-500/20 px-4 py-2 rounded-lg text-xs font-bold border border-green-500/20 transition-colors ml-auto"
                         >
-                           Thanh toán &rarr;
+                          Thanh toán &rarr;
                         </button>
                       </div>
                     </div>
@@ -443,39 +470,39 @@ function BarberDashboard() {
 
           <div className="bg-[#1c2230] rounded-xl border border-[#282a31] flex-1 overflow-hidden flex flex-col max-h-[800px]">
             {loading ? (
-               <div className="flex justify-center items-center h-48">
-                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1754cf]"></div>
-               </div>
+              <div className="flex justify-center items-center h-48">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1754cf]"></div>
+              </div>
             ) : history.length === 0 ? (
-               <div className="p-8 text-center m-auto">
-                 <p className="text-[#c3c6d6] font-medium">No history yet.</p>
-               </div>
+              <div className="p-8 text-center m-auto">
+                <p className="text-[#c3c6d6] font-medium">No history yet.</p>
+              </div>
             ) : (
-               <div className="overflow-y-auto p-4 space-y-3 custom-scrollbar flex-1">
-                  {history.map((apt) => (
-                     <div key={apt._id} className="p-4 bg-[#111621] rounded-lg border border-[#282a31]/50 hover:border-[#282a31] transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                           <div>
-                              <h4 className="text-white font-bold text-sm">{apt.customerId?.name || "Walk-in"}</h4>
-                              <p className="text-[#c3c6d6] text-xs mt-0.5">{apt.serviceId?.name || "General"}</p>
-                           </div>
-                           <span
-                              className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest ${getStatusColor(
-                                apt.status
-                              )}`}
-                            >
-                              {apt.status}
-                            </span>
-                        </div>
-                        <div className="text-xs text-[#c3c6d6]/60 font-medium">
-                           {new Date(apt.appointmentDate).toLocaleString('vi-VN', {
-                             day: '2-digit', month: 'short', year: 'numeric',
-                             hour: '2-digit', minute: '2-digit'
-                           })}
-                        </div>
-                     </div>
-                  ))}
-               </div>
+              <div className="overflow-y-auto p-4 space-y-3 custom-scrollbar flex-1">
+                {history.map((apt) => (
+                  <div key={apt._id} className="p-4 bg-[#111621] rounded-lg border border-[#282a31]/50 hover:border-[#282a31] transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="text-white font-bold text-sm">{apt.customerId?.name || "Walk-in"}</h4>
+                        <p className="text-[#c3c6d6] text-xs mt-0.5">{apt.serviceId?.name || "General"}</p>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-widest ${getStatusColor(
+                          apt.status
+                        )}`}
+                      >
+                        {apt.status}
+                      </span>
+                    </div>
+                    <div className="text-xs text-[#c3c6d6]/60 font-medium">
+                      {new Date(apt.appointmentDate).toLocaleString('vi-VN', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </section>
@@ -484,93 +511,93 @@ function BarberDashboard() {
 
       {/* Checkout Modal */}
       <AnimatePresence>
-         {showCheckout && checkoutApt && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-               <motion.div 
-                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                 className="bg-[#1c2230] border border-[#282a31] rounded-2xl w-full max-w-md  overflow-hidden"
-               >
-                 <div className="px-6 py-4 bg-gradient-to-r from-[#1754cf] to-[#003ea7] flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-white">Thanh Toán Dịch Vụ</h3>
-                    <button onClick={() => setShowCheckout(false)} className="text-white/60 hover:text-white transition-colors">
-                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-                    </button>
-                 </div>
-                 
-                 <div className="p-6 space-y-5">
-                    {/* Apt Info */}
-                    <div className="flex justify-between items-center bg-[#111621] p-4 rounded-xl border border-[#282a31]/50">
-                       <div>
-                          <p className="text-[#c3c6d6] text-xs font-bold uppercase mb-1">Khách hàng</p>
-                          <p className="text-white font-bold">{checkoutApt.customerId?.name || "Khách Vãng Lai"}</p>
-                       </div>
-                       <div className="text-right">
-                          <p className="text-[#c3c6d6] text-xs font-bold uppercase mb-1">Tổng tiền</p>
-                          <p className="text-[#1754cf] font-bold text-lg">{Number(checkoutApt.totalPrice || checkoutApt.serviceId?.price).toLocaleString('vi-VN')} VND</p>
-                       </div>
-                    </div>
+        {showCheckout && checkoutApt && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[#1c2230] border border-[#282a31] rounded-2xl w-full max-w-md  overflow-hidden"
+            >
+              <div className="px-6 py-4 bg-gradient-to-r from-[#1754cf] to-[#003ea7] flex justify-between items-center">
+                <h3 className="text-xl font-bold text-white">Thanh Toán Dịch Vụ</h3>
+                <button onClick={() => setShowCheckout(false)} className="text-white/60 hover:text-white transition-colors">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                </button>
+              </div>
 
-                    {/* Voucher Code */}
-                    <div>
-                       <label className="block text-xs font-bold text-[#c3c6d6] mb-2 uppercase">Mã giảm giá (Nếu có)</label>
-                       <input 
-                         type="text" 
-                         value={voucherCode} 
-                         onChange={(e) => setVoucherCode(e.target.value)}
-                         placeholder="Nhập mã voucher..."
-                         className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#1754cf] placeholder:text-[#c3c6d6]/40"
-                       />
-                    </div>
+              <div className="p-6 space-y-5">
+                {/* Apt Info */}
+                <div className="flex justify-between items-center bg-[#111621] p-4 rounded-xl border border-[#282a31]/50">
+                  <div>
+                    <p className="text-[#c3c6d6] text-xs font-bold uppercase mb-1">Khách hàng</p>
+                    <p className="text-white font-bold">{checkoutApt.customerId?.name || "Khách Vãng Lai"}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[#c3c6d6] text-xs font-bold uppercase mb-1">Tổng tiền</p>
+                    <p className="text-[#1754cf] font-bold text-lg">{Number(checkoutApt.totalPrice || checkoutApt.serviceId?.price).toLocaleString('vi-VN')} VND</p>
+                  </div>
+                </div>
 
-                     {/* Payment Method */}
-                     <div>
-                        <label className="block text-xs font-bold text-[#c3c6d6] mb-2 uppercase">Phương thức thanh toán</label>
-                        <div className="grid grid-cols-2 gap-3">
-                           <button 
-                             onClick={() => setPaymentMethod("cash")}
-                             className={`py-3 rounded-lg border flex flex-col items-center justify-center gap-1 transition-colors ${paymentMethod === 'cash' ? 'bg-[#1754cf]/10 border-[#1754cf] text-[#1754cf]' : 'bg-[#111621] border-[#282a31] text-[#c3c6d6] hover:border-[#c3c6d6]'}`}
-                           >
-                              <span className="text-xl">💵</span>
-                              <span className="font-bold text-xs">Tiền mặt</span>
-                           </button>
-                           <button 
-                             onClick={() => setPaymentMethod("vnpay")}
-                             className={`py-3 rounded-lg border flex flex-col items-center justify-center gap-1 transition-colors ${paymentMethod === 'vnpay' ? 'bg-[#1754cf]/10 border-[#1754cf] text-[#1754cf]' : 'bg-[#111621] border-[#282a31] text-[#c3c6d6] hover:border-[#c3c6d6]'}`}
-                           >
-                              <span className="text-xl">💳</span>
-                              <span className="font-bold text-xs">VNPAY</span>
-                           </button>
-                        </div>
-                     </div>
+                {/* Voucher Code */}
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] mb-2 uppercase">Mã giảm giá (Nếu có)</label>
+                  <input
+                    type="text"
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value)}
+                    placeholder="Nhập mã voucher..."
+                    className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#1754cf] placeholder:text-[#c3c6d6]/40"
+                  />
+                </div>
 
-                    {checkoutError && (
-                       <div className="text-[#ffb4ab] text-sm font-bold bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 px-3 py-2 rounded-lg">
-                          {checkoutError}
-                       </div>
-                    )}
-                 </div>
-
-                 <div className="p-6 border-t border-[#282a31] flex gap-3">
-                    <button 
-                      onClick={() => setShowCheckout(false)}
-                      disabled={checkoutLoading}
-                      className="flex-1 bg-transparent border border-[#282a31] text-white py-3 rounded-xl font-bold hover:bg-[#282a31]"
+                {/* Payment Method */}
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] mb-2 uppercase">Phương thức thanh toán</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setPaymentMethod("cash")}
+                      className={`py-3 rounded-lg border flex flex-col items-center justify-center gap-1 transition-colors ${paymentMethod === 'cash' ? 'bg-[#1754cf]/10 border-[#1754cf] text-[#1754cf]' : 'bg-[#111621] border-[#282a31] text-[#c3c6d6] hover:border-[#c3c6d6]'}`}
                     >
-                       Hủy
+                      <span className="text-xl">💵</span>
+                      <span className="font-bold text-xs">Tiền mặt</span>
                     </button>
-                    <button 
-                      onClick={handleCheckout}
-                      disabled={checkoutLoading}
-                      className="flex-1 bg-gradient-to-r from-[#1754cf] to-[#003ea7] hover:from-[#1349b8] hover:to-[#003185] text-white py-3 rounded-xl font-bold  /20 flex items-center justify-center gap-2 disabled:opacity-50"
+                    <button
+                      onClick={() => setPaymentMethod("vnpay")}
+                      className={`py-3 rounded-lg border flex flex-col items-center justify-center gap-1 transition-colors ${paymentMethod === 'vnpay' ? 'bg-[#1754cf]/10 border-[#1754cf] text-[#1754cf]' : 'bg-[#111621] border-[#282a31] text-[#c3c6d6] hover:border-[#c3c6d6]'}`}
                     >
-                       {checkoutLoading ? "Đang xử lý..." : "Xác nhận & Hoàn tất"}
+                      <span className="text-xl">💳</span>
+                      <span className="font-bold text-xs">VNPAY</span>
                     </button>
-                 </div>
-               </motion.div>
-            </div>
-         )}
+                  </div>
+                </div>
+
+                {checkoutError && (
+                  <div className="text-[#ffb4ab] text-sm font-bold bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 px-3 py-2 rounded-lg">
+                    {checkoutError}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-[#282a31] flex gap-3">
+                <button
+                  onClick={() => setShowCheckout(false)}
+                  disabled={checkoutLoading}
+                  className="flex-1 bg-transparent border border-[#282a31] text-white py-3 rounded-xl font-bold hover:bg-[#282a31]"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
+                  className="flex-1 bg-gradient-to-r from-[#1754cf] to-[#003ea7] hover:from-[#1349b8] hover:to-[#003185] text-white py-3 rounded-xl font-bold  /20 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {checkoutLoading ? "Đang xử lý..." : "Xác nhận & Hoàn tất"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
 
       {/* Global styles for custom scrollbar if needed */}
@@ -594,4 +621,3 @@ function BarberDashboard() {
 }
 
 export default BarberDashboard;
-
