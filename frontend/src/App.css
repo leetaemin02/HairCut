@@ -17,6 +17,8 @@
   button {
     @apply cursor-pointer;
     font-family: inherit;
+    /* Flat AI style: no glow, no elevation */
+    box-shadow: none !important;
   }
 
   input,
@@ -30,3 +32,24 @@
     color: inherit;
   }
 }
+
+@layer utilities {
+  /* Strip all colored glow shadows from buttons globally */
+  .btn-flat {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* AI-style: subtle border highlight instead of shadow */
+  .border-highlight {
+    border-color: rgba(23, 84, 207, 0.5);
+    box-shadow: none;
+  }
+
+  /* Remove blur glow orbs on backgrounds */
+  .no-glow {
+    filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+

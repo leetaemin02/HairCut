@@ -15,7 +15,7 @@ import {
   Legend
 } from "recharts";
 
-const CATEGORIES = ["Cắt tóc", "Thư giãn", "Hóa chất", "Dịch vụ khác"];
+const CATEGORIES = ["Dịch vụ Cắt tóc", "Dịch vụ Thư giãn", "Dịch vụ Hóa chất", "Dịch vụ khác"];
 
 function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -73,8 +73,13 @@ function AdminDashboard() {
   const [editingVoucherId, setEditingVoucherId] = useState(null);
   const [voucherForm, setVoucherForm] = useState({
     code: "",
+    title: "",
+    description: "",
+    type: "DISCOUNT",
     discountPercent: 10,
     usageLimit: 100,
+    targetAudience: "all",
+    expiryDate: "",
     isActive: true
   });
 
@@ -221,12 +226,22 @@ function AdminDashboard() {
 
   const openAddVoucherModal = () => {
     setEditingVoucherId(null);
-    setVoucherForm({ code: "", discountPercent: 10, usageLimit: 100, isActive: true });
+    setVoucherForm({ code: "", title: "", description: "", type: "DISCOUNT", discountPercent: 10, usageLimit: 100, targetAudience: "all", expiryDate: "", isActive: true });
     setIsVoucherModalOpen(true);
   };
   const openEditVoucherModal = (v) => {
     setEditingVoucherId(v._id);
-    setVoucherForm({ code: v.code, discountPercent: v.discountPercent, usageLimit: v.usageLimit, isActive: v.isActive });
+    setVoucherForm({
+      code: v.code,
+      title: v.title || "",
+      description: v.description || "",
+      type: v.type || "DISCOUNT",
+      discountPercent: v.discountPercent,
+      usageLimit: v.usageLimit,
+      targetAudience: v.targetAudience || "all",
+      expiryDate: v.expiryDate ? new Date(v.expiryDate).toISOString().split('T')[0] : "",
+      isActive: v.isActive
+    });
     setIsVoucherModalOpen(true);
   };
 
@@ -421,7 +436,7 @@ function AdminDashboard() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
                   {/* Revenue Chart */}
-                  <div className="lg:col-span-2 bg-[#1c2230] p-6 rounded-2xl border border-[#282a31] shadow-sm">
+                  <div className="lg:col-span-2 bg-[#1c2230] p-6 rounded-2xl border border-[#282a31] ">
                     <h3 className="text-xl font-bold mb-6 text-white flex items-center gap-2">
                       <span className="text-blue-500"></span> Doanh thu theo tháng
                     </h3>
@@ -441,7 +456,7 @@ function AdminDashboard() {
                   </div>
 
                   {/* Pie Chart: Appointment Status */}
-                  <div className="bg-[#1c2230] p-6 rounded-2xl border border-[#282a31] shadow-sm">
+                  <div className="bg-[#1c2230] p-6 rounded-2xl border border-[#282a31] ">
                     <h3 className="text-xl font-bold mb-6 text-white flex items-center gap-2">
                       <span className="text-orange-500"></span> Tình trạng lịch hẹn
                     </h3>
@@ -509,7 +524,7 @@ function AdminDashboard() {
               <div className="space-y-12">
                 <div className="flex justify-between items-center bg-[#1c2230] p-6 rounded-2xl border border-[#282a31]">
                   <div><h3 className="text-xl font-bold text-white">Danh sách dịch vụ</h3><p className="text-[#c3c6d6] text-sm mt-1">Quản lý các gói cắt và thư giãn</p></div>
-                  <button onClick={openAddServiceModal} className="bg-[#1754cf] hover:bg-[#1754cf]/80 text-white px-6 py-3 rounded-xl font-bold shadow-[0_5px_15px_rgba(23,84,207,0.3)]">+ Thêm dịch vụ</button>
+                  <button onClick={openAddServiceModal} className="bg-[#1754cf] hover:bg-[#1754cf]/80 text-white px-6 py-3 rounded-xl font-bold ">+ Thêm dịch vụ</button>
                 </div>
                 {CATEGORIES.map(cat => {
                   const filtered = services.filter(s => (s.category || "Dịch vụ khác") === cat);
@@ -581,7 +596,7 @@ function AdminDashboard() {
                     </table>
                   </div>
                 ) : (
-                  <div className="bg-[#1c2230] rounded-2xl border border-[#282a31] p-6 shadow-sm">
+                  <div className="bg-[#1c2230] rounded-2xl border border-[#282a31] p-6 ">
                     <h4 className="text-white font-bold text-lg mb-6">Lịch Hẹn Hôm Nay - Ngày {new Date().toLocaleDateString('vi-VN')}</h4>
                     {renderCalendar()}
                   </div>
@@ -645,7 +660,7 @@ function AdminDashboard() {
                     <h3 className="text-xl font-bold text-white">Phòng Trưng Bày (LookBook)</h3>
                     <p className="text-[#c3c6d6] text-sm mt-1">Cập nhật kiểu tóc nổi bật để khách hàng tham khảo trên Trang Chủ.</p>
                   </div>
-                  <button onClick={openAddLookbookModal} className="bg-[#1754cf] hover:bg-[#1754cf]/80 text-white px-6 py-3 rounded-xl font-bold shadow-[0_5px_15px_rgba(23,84,207,0.3)]">+ Thêm Ảnh Mới</button>
+                  <button onClick={openAddLookbookModal} className="bg-[#1754cf] hover:bg-[#1754cf]/80 text-white px-6 py-3 rounded-xl font-bold ">+ Thêm Ảnh Mới</button>
                 </div>
 
                 <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
@@ -681,30 +696,65 @@ function AdminDashboard() {
                     <h3 className="text-xl font-bold text-white">Quản lý Voucher Khuyến mãi</h3>
                     <p className="text-[#c3c6d6] text-sm mt-1">Hệ thống tạo mã giảm giá tự động kích cầu nội bộ.</p>
                   </div>
-                  <button onClick={openAddVoucherModal} className="bg-[#1754cf] hover:bg-[#1754cf]/80 text-white px-6 py-3 rounded-xl font-bold shadow-[0_5px_15px_rgba(23,84,207,0.3)]">+ Tạo Voucher Mới</button>
+                  <button onClick={openAddVoucherModal} className="bg-[#1754cf] hover:bg-[#1754cf]/80 text-white px-6 py-3 rounded-xl font-bold ">+ Tạo Voucher Mới</button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {vouchers.map(v => (
-                    <div key={v._id} className="relative bg-[#1c2230] rounded-2xl border border-[#282a31] p-6 hover:border-[#1754cf]/50 transition-colors group overflow-hidden">
-                      {!v.isActive && <div className="absolute inset-0 bg-[#111621]/80 backdrop-blur-[2px] z-10 flex items-center justify-center"><span className="text-[#ffb4ab] font-bold uppercase tracking-widest border-2 border-[#ffb4ab] px-4 py-2 rounded-lg rotate-12 bg-[#111621]">Đã vô hiệu hóa</span></div>}
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="bg-[#1754cf]/10 border border-[#1754cf]/30 px-3 py-1.5 rounded-lg flex items-center gap-2">
-                          <span className="text-xl">🏷️</span>
-                          <span className="text-[#1754cf] font-bold text-lg uppercase tracking-widest">{v.code}</span>
+                  {vouchers.map(v => {
+                    const audienceLabels = { all: 'Tất cả', new_user: 'Khách mới', vip: 'VIP (5+ lần)', staff: 'Nội bộ' };
+                    const typeColors = { DISCOUNT: 'text-[#1754cf] bg-[#1754cf]/10 border-[#1754cf]/30', GIFT: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', VIP: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
+                    const typeIcons = { DISCOUNT: '%', GIFT: '🎁', VIP: '👑' };
+                    const isExpired = v.expiryDate && new Date(v.expiryDate) < new Date();
+                    return (
+                      <div key={v._id} className="relative bg-[#1c2230] rounded-2xl border border-[#282a31] p-6 hover:border-[#1754cf]/50 transition-all duration-300 group overflow-hidden flex flex-col gap-4">
+                        {(!v.isActive || isExpired) && <div className="absolute inset-0 bg-[#111621]/80 backdrop-blur-[2px] z-10 flex items-center justify-center"><span className="text-[#ffb4ab] font-bold uppercase tracking-widest border-2 border-[#ffb4ab] px-4 py-2 rounded-lg rotate-12 bg-[#111621]">{isExpired ? 'Hết Hạn' : 'Đã vô hiệu hóa'}</span></div>}
+
+                        {/* Header Row */}
+                        <div className="flex justify-between items-start">
+                          <div className="bg-[#111621] border border-[#282a31] px-3 py-1.5 rounded-lg flex items-center gap-2">
+                            <span className={`text-sm font-bold px-2 py-0.5 rounded border ${typeColors[v.type] || typeColors.DISCOUNT}`}>{typeIcons[v.type] || '%'}</span>
+                            <span className="text-[#1754cf] font-bold text-base uppercase tracking-widest">{v.code}</span>
+                          </div>
+                          <span className="text-2xl font-bold text-green-400">-{v.discountPercent}%</span>
                         </div>
-                        <span className="text-2xl font-bold text-green-400">-{v.discountPercent}%</span>
+
+                        {/* Title & Description */}
+                        {v.title && <div>
+                          <p className="text-white font-bold text-sm leading-snug">{v.title}</p>
+                          {v.description && <p className="text-[#c3c6d6] text-xs mt-1 line-clamp-2">{v.description}</p>}
+                        </div>}
+
+                        {/* Meta Info */}
+                        <div className="space-y-2 text-sm border-t border-[#282a31] pt-3">
+                          <div className="flex justify-between">
+                            <span className="text-[#c3c6d6]">🎯 Đối tượng:</span>
+                            <span className="text-white font-bold text-xs uppercase tracking-wider">{audienceLabels[v.targetAudience] || 'Tất cả'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-[#c3c6d6]">Lượt khả dụng:</span>
+                            <span className="text-white font-bold">{v.usageLimit - v.usedCount} / {v.usageLimit}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-[#c3c6d6]">Đã dùng:</span>
+                            <span className="text-[#1754cf] font-bold">{v.usedCount} lượt</span>
+                          </div>
+                          {v.expiryDate && (
+                            <div className="flex justify-between">
+                              <span className="text-[#c3c6d6]">Hết hạn:</span>
+                              <span className={`font-bold text-xs ${isExpired ? 'text-red-400' : 'text-amber-400'}`}>
+                                {new Date(v.expiryDate).toLocaleDateString('vi-VN')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2 relative z-20 mt-auto">
+                          <button onClick={() => openEditVoucherModal(v)} className="flex-1 bg-[#282a31] hover:bg-[#434654] text-white text-sm font-bold py-2 rounded-lg transition-colors">Sửa</button>
+                          <button onClick={() => handleDeleteVoucher(v._id)} className="flex-1 text-[#ffb4ab] bg-[#ffb4ab]/10 hover:bg-[#ffb4ab]/20 text-sm font-bold py-2 rounded-lg transition-colors">Xóa</button>
+                        </div>
                       </div>
-                      <div className="space-y-3 mb-6">
-                        <div className="flex justify-between text-sm"><span className="text-[#c3c6d6]">Lượt khả dụng:</span><span className="text-white font-bold">{v.usageLimit - v.usedCount} lượt</span></div>
-                        <div className="flex justify-between text-sm"><span className="text-[#c3c6d6]">Đã dùng:</span><span className="text-[#1754cf] font-bold">{v.usedCount} lượt</span></div>
-                      </div>
-                      <div className="flex gap-2 relative z-20">
-                        <button onClick={() => openEditVoucherModal(v)} className="flex-1 bg-[#282a31] hover:bg-[#434654] text-white text-sm font-bold py-2 rounded-lg transition-colors">Sửa</button>
-                        <button onClick={() => handleDeleteVoucher(v._id)} className="flex-1 text-[#ffb4ab] bg-[#ffb4ab]/10 hover:bg-[#ffb4ab]/20 text-sm font-bold py-2 rounded-lg transition-colors">Xóa</button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -749,7 +799,7 @@ function AdminDashboard() {
       {/* SERVICE MODAL */}
       {isServiceModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#1c2230] w-full max-w-xl rounded-2xl shadow-2xl border border-[#282a31] overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-[#1c2230] w-full max-w-xl rounded-2xl  border border-[#282a31] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-[#282a31] flex justify-between items-center bg-[#111621]">
               <h3 className="text-xl font-bold text-white tracking-wide">{editingServiceId ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ mới"}</h3>
               <button onClick={() => setIsServiceModalOpen(false)} className="text-[#c3c6d6] hover:text-white text-3xl font-light">&times;</button>
@@ -777,7 +827,7 @@ function AdminDashboard() {
               </div>
               <div><label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">URL Hình ảnh</label><input type="text" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl" value={serviceForm.image} onChange={(e) => setServiceForm({ ...serviceForm, image: e.target.value })} /></div>
               <div><label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Mô tả</label><textarea rows="3" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl" value={serviceForm.description} onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}></textarea></div>
-              <div className="pt-4 flex gap-4"><button type="button" onClick={() => setIsServiceModalOpen(false)} className="flex-1 py-3 bg-[#282a31] hover:bg-[#33343c] text-white rounded-xl font-bold">Hủy</button><button type="submit" className="flex-1 py-3 bg-[#1754cf] text-white rounded-xl font-bold shadow-[0_5px_15px_rgba(23,84,207,0.3)]">Lưu lại</button></div>
+              <div className="pt-4 flex gap-4"><button type="button" onClick={() => setIsServiceModalOpen(false)} className="flex-1 py-3 bg-[#282a31] hover:bg-[#33343c] text-white rounded-xl font-bold">Hủy</button><button type="submit" className="flex-1 py-3 bg-[#1754cf] text-white rounded-xl font-bold ">Lưu lại</button></div>
             </form>
           </div>
         </div>
@@ -786,7 +836,7 @@ function AdminDashboard() {
       {/* LOOKBOOK MODAL */}
       {isLookbookModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#1c2230] w-full max-w-xl rounded-2xl shadow-2xl border border-[#282a31] overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-[#1c2230] w-full max-w-xl rounded-2xl  border border-[#282a31] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-[#282a31] flex justify-between items-center bg-[#111621]">
               <h3 className="text-xl font-bold text-white tracking-wide">{editingLookbookId ? "Chỉnh sửa LookBook" : "Thêm ảnh LookBook"}</h3>
               <button onClick={() => setIsLookbookModalOpen(false)} className="text-[#c3c6d6] hover:text-white text-3xl font-light">&times;</button>
@@ -812,7 +862,7 @@ function AdminDashboard() {
                 </div>
               </div>
               <div><label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Cảm hứng / Thông tin thêm</label><textarea rows="3" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl" value={lookbookForm.description} onChange={(e) => setLookbookForm({ ...lookbookForm, description: e.target.value })} placeholder="Chi tiết..."></textarea></div>
-              <div className="pt-4 flex gap-4"><button type="button" onClick={() => setIsLookbookModalOpen(false)} className="flex-1 py-3 bg-[#282a31] hover:bg-[#33343c] text-white rounded-xl font-bold">Hủy</button><button type="submit" className="flex-1 py-3 bg-[#1754cf] text-white rounded-xl font-bold shadow-[0_5px_15px_rgba(23,84,207,0.3)]">Đăng Tải</button></div>
+              <div className="pt-4 flex gap-4"><button type="button" onClick={() => setIsLookbookModalOpen(false)} className="flex-1 py-3 bg-[#282a31] hover:bg-[#33343c] text-white rounded-xl font-bold">Hủy</button><button type="submit" className="flex-1 py-3 bg-[#1754cf] text-white rounded-xl font-bold ">Đăng Tải</button></div>
             </form>
           </div>
         </div>
@@ -820,29 +870,77 @@ function AdminDashboard() {
 
       {/* VOUCHER MODAL */}
       {isVoucherModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#1c2230] w-full max-w-md rounded-2xl shadow-2xl border border-[#282a31] overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-[#1c2230] w-full max-w-2xl rounded-2xl  border border-[#282a31] overflow-hidden animate-in zoom-in-95 duration-200 my-4">
             <div className="p-6 border-b border-[#282a31] flex justify-between items-center bg-[#111621]">
-              <h3 className="text-xl font-bold text-white tracking-wide">{editingVoucherId ? "Cập nhật Voucher" : "Tạo Mã Mới"}</h3>
+              <div>
+                <h3 className="text-xl font-bold text-white tracking-wide">{editingVoucherId ? "Cập nhật Voucher" : "Tạo Mã Khuyến Mãi Mới"}</h3>
+                <p className="text-[#c3c6d6] text-xs mt-1">Hệ thống sẽ tự động phân phối dựa theo đối tượng khách hàng bạn chọn.</p>
+              </div>
               <button onClick={() => setIsVoucherModalOpen(false)} className="text-[#c3c6d6] hover:text-white text-3xl font-light">&times;</button>
             </div>
             <form onSubmit={handleVoucherSubmit} className="p-6 space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Mã Khuyến Mãi (Mã Code)</label>
-                <input required type="text" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl outline-none focus:border-[#1754cf] uppercase font-bold tracking-widest" value={voucherForm.code} onChange={(e) => setVoucherForm({ ...voucherForm, code: e.target.value.toUpperCase() })} placeholder="SALE50" />
-              </div>
+
+              {/* Row 1: Code & Discount */}
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Mã Code</label>
+                  <input required type="text" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl outline-none focus:border-[#1754cf] uppercase font-bold tracking-widest" value={voucherForm.code} onChange={(e) => setVoucherForm({ ...voucherForm, code: e.target.value.toUpperCase() })} placeholder="SALE50" />
+                </div>
                 <div>
                   <label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Mức Giảm (%)</label>
                   <input required type="number" min="1" max="100" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl outline-none focus:border-[#1754cf]" value={voucherForm.discountPercent} onChange={(e) => setVoucherForm({ ...voucherForm, discountPercent: e.target.value })} />
                 </div>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Tên Hiển Thị (Tiêu đề)</label>
+                <input required type="text" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl outline-none focus:border-[#1754cf]" value={voucherForm.title} onChange={(e) => setVoucherForm({ ...voucherForm, title: e.target.value })} placeholder="VD: Kiến Triê shày 30% Quốc Khánh" />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Mô tả chi tiết / Sự kiện</label>
+                <textarea rows="2" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl outline-none focus:border-[#1754cf] resize-none" value={voucherForm.description} onChange={(e) => setVoucherForm({ ...voucherForm, description: e.target.value })} placeholder="VD: Ưu đãi đặc biệt cho ngày 2/9. Áp dụng cho tất cả dịch vụ cơ bản..." />
+              </div>
+
+              {/* Row 2: Type & Target Audience */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Loại Voucher</label>
+                  <select className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl outline-none focus:border-[#1754cf]" value={voucherForm.type} onChange={(e) => setVoucherForm({ ...voucherForm, type: e.target.value })}>
+                    <option value="DISCOUNT">% Giảm Giá</option>
+                    <option value="GIFT">🎁 Quà Tặng</option>
+                    <option value="VIP">👑 VIP Member</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Đối Tượng Nhận</label>
+                  <select className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl outline-none focus:border-[#1754cf]" value={voucherForm.targetAudience} onChange={(e) => setVoucherForm({ ...voucherForm, targetAudience: e.target.value })}>
+                    <option value="all">Tất cả khách hàng</option>
+                    <option value="new_user">Khách mới (chưa có lịch hoàn tất)</option>
+                    <option value="vip">VIP (có ≥ 5 lịch hoàn tất)</option>
+                    <option value="staff">Nội bộ (Staff / Admin)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 3: Usage Limit & Expiry */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Số Lượng Tối Đa</label>
                   <input required type="number" min="1" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl outline-none focus:border-[#1754cf]" value={voucherForm.usageLimit} onChange={(e) => setVoucherForm({ ...voucherForm, usageLimit: e.target.value })} />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#c3c6d6] uppercase tracking-wider mb-2">Ngày Hết Hạn <span className="normal-case text-[#c3c6d6]/50">(tùy chọn)</span></label>
+                  <input type="date" className="w-full px-4 py-3 bg-[#111621] border border-[#282a31] text-white rounded-xl outline-none focus:border-[#1754cf]" value={voucherForm.expiryDate} onChange={(e) => setVoucherForm({ ...voucherForm, expiryDate: e.target.value })} />
+                </div>
               </div>
+
+              {/* Active Toggle */}
               <div className="flex items-center gap-3 bg-[#111621] border border-[#282a31] p-4 rounded-xl cursor-pointer" onClick={() => setVoucherForm({ ...voucherForm, isActive: !voucherForm.isActive })}>
-                <div className={`w-5 h-5 rounded border ${voucherForm.isActive ? 'bg-[#1754cf] border-[#1754cf]' : 'border-[#434654]'} flex items-center justify-center`}>
+                <div className={`w-5 h-5 rounded border ${voucherForm.isActive ? 'bg-[#1754cf] border-[#1754cf]' : 'border-[#434654]'} flex items-center justify-center shrink-0`}>
                   {voucherForm.isActive && <span className="text-white text-xs">✓</span>}
                 </div>
                 <div>
@@ -851,7 +949,10 @@ function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="pt-4 flex gap-4"><button type="button" onClick={() => setIsVoucherModalOpen(false)} className="flex-1 py-3 bg-[#282a31] hover:bg-[#33343c] text-white rounded-xl font-bold">Hủy</button><button type="submit" className="flex-1 py-3 bg-[#1754cf] text-white rounded-xl font-bold shadow-[0_5px_15px_rgba(23,84,207,0.3)]">Phát Hành Của Hàng</button></div>
+              <div className="pt-4 flex gap-4">
+                <button type="button" onClick={() => setIsVoucherModalOpen(false)} className="flex-1 py-3 bg-[#282a31] hover:bg-[#33343c] text-white rounded-xl font-bold">Hủy</button>
+                <button type="submit" className="flex-1 py-3 bg-[#1754cf] text-white rounded-xl font-bold ">Phát Hành Ngay</button>
+              </div>
             </form>
           </div>
         </div>
@@ -862,7 +963,7 @@ function AdminDashboard() {
 
 function SidebarLink({ icon, label, active, onClick }) {
   return (
-    <button onClick={onClick} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 border ${active ? "bg-[#1c2230] text-white border-[#1754cf] shadow-[0_5px_15px_rgba(23,84,207,0.15)]" : "bg-transparent text-[#c3c6d6] border-transparent hover:bg-[#1c2230] hover:text-white"}`} >
+    <button onClick={onClick} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 border ${active ? "bg-[#1c2230] text-white border-[#1754cf] " : "bg-transparent text-[#c3c6d6] border-transparent hover:bg-[#1c2230] hover:text-white"}`} >
       <span className="text-xl">{icon}</span>
       <span className="font-bold text-[15px]">{label}</span>
       {active && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#1754cf]"></div>}
@@ -872,7 +973,7 @@ function SidebarLink({ icon, label, active, onClick }) {
 
 function StatCard({ label, value, subtext, color = "text-white" }) {
   return (
-    <div className="bg-[#1c2230] p-5 rounded-2xl border border-[#282a31] flex flex-col gap-2 group relative overflow-hidden hover:border-[#1754cf]/50 transition-colors shadow-sm">
+    <div className="bg-[#1c2230] p-5 rounded-2xl border border-[#282a31] flex flex-col gap-2 group relative overflow-hidden hover:border-[#1754cf]/50 transition-colors ">
       <div className="absolute top-0 right-0 w-20 h-20 bg-[#1754cf]/5 blur-[35px] rounded-full group-hover:bg-[#1754cf]/10 transition-colors pointer-events-none"></div>
       <span className="text-[10px] font-bold text-[#c3c6d6] uppercase tracking-widest z-10">{label}</span>
       <div className="flex items-baseline gap-2 z-10">
@@ -884,3 +985,4 @@ function StatCard({ label, value, subtext, color = "text-white" }) {
 }
 
 export default AdminDashboard;
+

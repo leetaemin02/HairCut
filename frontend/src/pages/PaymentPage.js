@@ -77,7 +77,7 @@ function PaymentPage() {
                     </div>
 
                     {/* Appointment Summary Card */}
-                    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden ">
                         {/* Header gradient */}
                         <div className="bg-gradient-to-r from-blue-700/70 to-cyan-700/70 px-6 py-4">
                             <p className="text-xs text-white/60 uppercase font-semibold tracking-wider">Chi tiết lịch hẹn</p>
@@ -164,7 +164,7 @@ function PaymentPage() {
                         id="btn-pay-vnpay"
                         onClick={handlePayWithVNPAY}
                         disabled={loading}
-                        className="w-full py-4 rounded-2xl font-extrabold text-lg text-white shadow-lg shadow-blue-500/20 transition-all active:scale-95 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                        className="w-full py-4 rounded-2xl font-extrabold text-lg text-white  shadow-blue-500/20 transition-all active:scale-95 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                     >
                         {loading ? (
                             <span className="flex items-center justify-center gap-3">
@@ -206,3 +206,4 @@ function PaymentPage() {
 }
 
 export default PaymentPage;
+

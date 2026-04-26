@@ -23,6 +23,28 @@ const voucherSchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
+        title: {
+            type: String,
+            required: true,
+            default: "Mã Khuyến Mãi"
+        },
+        description: {
+            type: String,
+            default: ""
+        },
+        type: {
+            type: String,
+            enum: ['DISCOUNT', 'GIFT', 'VIP'],
+            default: 'DISCOUNT'
+        },
+        targetAudience: {
+            type: String,
+            enum: ['all', 'new_user', 'vip', 'staff'],
+            default: 'all'
+        },
+        expiryDate: {
+            type: Date
+        },
         isActive: {
             type: Boolean,
             default: true

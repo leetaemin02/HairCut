@@ -32,7 +32,7 @@ function Login() {
       const response = await authAPI.login({ email, password });
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
-      
+
       if (response.data.user.role === "barber") {
         navigate("/barber-dashboard");
       } else if (response.data.user.role === "admin") {
@@ -52,12 +52,12 @@ function Login() {
       <Header />
 
       <main className="flex-grow flex justify-center items-center px-4 relative py-12">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-10 shadow-2xl w-full max-w-md backdrop-blur-sm relative">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-10  w-full max-w-md backdrop-blur-sm relative">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
-              Welcome Back
+              Chào mừng bạn trở lại
             </h1>
-            <p className="text-slate-400 text-sm">Sign in to manage your appointments</p>
+            <p className="text-slate-400 text-sm">Đăng nhập để đặt lịch cắt tóc ngay nhé</p>
           </div>
 
           {error && (
@@ -81,7 +81,7 @@ function Login() {
             </div>
             <div className="mb-8">
               <label className="block text-slate-300 font-semibold mb-2 text-sm">
-                Password
+                Mật khẩu
               </label>
               <input
                 type="password"
@@ -91,22 +91,30 @@ function Login() {
                 className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-slate-600"
                 placeholder="••••••••"
               />
+              <div className="flex justify-end mt-2">
+                <Link
+                  to="/forgot-password"
+                  className="text-slate-400 text-sm hover:text-blue-400 transition-colors"
+                >
+                  Quên mật khẩu?
+                </Link>
+              </div>
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:scale-[1.02] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-xl  shadow-blue-500/25 hover:scale-[1.02] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {loading ? "Logging in..." : "Login"}
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
           </form>
           <p className="text-center mt-8 text-slate-400 text-sm">
-            Don't have an account?{" "}
+            Chưa có tài khoản?{" "}
             <Link
               to="/register"
               className="text-blue-400 font-bold hover:text-blue-300 hover:underline transition-colors"
             >
-              Register here
+              Đăng ký ngay
             </Link>
           </p>
         </div>
@@ -120,3 +128,4 @@ function Login() {
 }
 
 export default Login;
+

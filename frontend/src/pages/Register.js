@@ -41,7 +41,7 @@ function Register() {
       <Header />
 
       <main className="flex-grow flex justify-center items-center px-4 relative py-12">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-10 shadow-2xl w-full max-w-md backdrop-blur-sm relative">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-10  w-full max-w-md backdrop-blur-sm relative">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
               Create Account
@@ -57,7 +57,7 @@ function Register() {
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-slate-300 font-semibold mb-2 text-sm">
-                Full Name
+                Họ và tên
               </label>
               <input
                 type="text"
@@ -66,7 +66,7 @@ function Register() {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-slate-600"
-                placeholder="Enter your full name"
+                placeholder="Vdu: Nguyễn Thế Minh"
               />
             </div>
             <div className="mb-4">
@@ -80,12 +80,12 @@ function Register() {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-slate-600"
-                placeholder="Enter your email"
+                placeholder="Vdu: minh123@gmail.com"
               />
             </div>
             <div className="mb-4">
               <label className="block text-slate-300 font-semibold mb-2 text-sm">
-                Phone
+                Số điện thoại
               </label>
               <input
                 type="tel"
@@ -94,12 +94,12 @@ function Register() {
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-slate-600"
-                placeholder="Enter your phone number"
+                placeholder="Vdu: 0123456789"
               />
             </div>
             <div className="mb-8">
               <label className="block text-slate-300 font-semibold mb-2 text-sm">
-                Password
+                Mật khẩu
               </label>
               <input
                 type="password"
@@ -114,18 +114,18 @@ function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:scale-[1.02] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-xl  shadow-blue-500/25 hover:scale-[1.02] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
             </button>
           </form>
           <p className="text-center mt-8 text-slate-400 text-sm">
-            Already have an account?{" "}
+            Bạn đã có tài khoản ?{" "}
             <Link
               to="/login"
               className="text-blue-400 font-bold hover:text-blue-300 hover:underline transition-colors"
             >
-              Login here
+              Đăng nhập ngay
             </Link>
           </p>
         </div>
@@ -139,3 +139,4 @@ function Register() {
 }
 
 export default Register;
+

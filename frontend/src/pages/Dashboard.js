@@ -103,8 +103,8 @@ function Dashboard() {
         <section className="px-4 py-16 sm:px-6 md:px-10 lg:px-20 bg-slate-900/50">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold font-heading mb-4">Our Premium Services</h2>
-              <p className="text-slate-400">Top-tier grooming packages selected for you</p>
+              <h2 className="text-3xl font-bold font-heading mb-4">Dịch vụ được ưa chuộng nhất</h2>
+              <p className="text-slate-400">Khách hàng khác đã thử, còn bạn thì sao ?</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -115,7 +115,7 @@ function Dashboard() {
                     onClick={() => navigate(`/services/${service._id}`)}
                     className="group p-6 rounded-2xl bg-white/5 border border-white/5 transition-all hover:-translate-y-1 cursor-pointer"
                   >
-                    <div className="w-full h-64 mb-6 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-4xl transition-transform overflow-hidden shadow-lg border border-white/5 relative">
+                    <div className="w-full h-64 mb-6 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-4xl transition-transform overflow-hidden  border border-white/5 relative">
                       {service.image ? (
                         <img
                           src={service.image}
@@ -128,18 +128,18 @@ function Dashboard() {
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                      {service.completedCount || 0} Booked
+                      {service.completedCount || 0} lần được khách hàng tin dùng
                     </div>
                     <h3 className="text-1xl font-serif font-bold mb-2 transition-colors uppercase tracking-widest">{service.name}</h3>
                     <p className="text-slate-400 text-sm mb-4 line-clamp-2">{service.description}</p>
                     <div className="flex items-center justify-between border-t border-white/10 pt-4">
                       <span className="text-blue-400 font-bold tracking-widest">{Number(service.price).toLocaleString('vi-VN')} VND</span>
-                      <span className="text-sm text-slate-500 underline underline-offset-4 group-hover:text-white transition-colors">Details →</span>
+                      <span className="text-sm text-slate-500 underline underline-offset-4 group-hover:text-white transition-colors">Chi tiết →</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="col-span-3 text-center text-slate-500">Loading services...</div>
+                <div className="col-span-3 text-center text-slate-500">Đang tải dịch vụ ....</div>
               )}
             </div>
           </div>
@@ -150,14 +150,14 @@ function Dashboard() {
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
               <div>
-                <h2 className="text-3xl font-bold font-heading mb-4">Master Barbers</h2>
-                <p className="text-slate-400 max-w-md">Our team of experienced professionals dedicated to your perfect look.</p>
+                <h2 className="text-3xl font-bold font-heading mb-4">Các thợ chính của chúng tôi</h2>
+                <p className="text-slate-400 max-w-md">Đội ngũ thợ chính của chúng tôi với nhiều năm kinh nghiệm trong nghề, cam kết mang đến cho bạn những kiểu tóc ưng ý nhất.</p>
               </div>
               <button
                 onClick={() => navigate("/appointments")}
                 className="text-blue-400 font-bold hover:text-blue-300 transition-colors flex items-center gap-2"
               >
-                Book with them <span>→</span>
+                Liên hệ ngay <span>→</span>
               </button>
             </div>
 
@@ -191,12 +191,11 @@ function Dashboard() {
                       return (
                         <div className="flex items-center gap-1.5 mb-1">
                           <div className="flex">
-                            {[1,2,3,4,5].map(i => (
-                              <span key={i} className={`text-sm ${
-                                i <= fullStars ? 'text-yellow-400'
+                            {[1, 2, 3, 4, 5].map(i => (
+                              <span key={i} className={`text-sm ${i <= fullStars ? 'text-yellow-400'
                                 : i === fullStars + 1 && halfStar ? 'text-yellow-400/60'
-                                : 'text-white/20'
-                              }`}>★</span>
+                                  : 'text-white/20'
+                                }`}>★</span>
                             ))}
                           </div>
                           <span className="text-yellow-400 text-xs font-bold">{stats.avgRating}</span>
@@ -217,8 +216,8 @@ function Dashboard() {
         <section className="px-4 py-20 bg-slate-900/30 border-t border-white/5">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold font-heading mb-4">Style Lookbook</h2>
-              <p className="text-slate-400">Inspiration from our latest cuts and styles.</p>
+              <h2 className="text-3xl font-bold font-heading mb-4">Các mẫu tóc được ưa chuộng</h2>
+              <p className="text-slate-400">Tham khảo các mẫu tóc được ưa chuộng nhất hiện nay.</p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -250,17 +249,16 @@ function Dashboard() {
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
               <div>
-                <h2 className="text-3xl font-bold font-heading mb-6">Visit Our Studio</h2>
+                <h2 className="text-3xl font-bold font-heading mb-6">Ghé thăm tiệm của chúng tôi</h2>
                 <p className="text-slate-400 mb-8">
-                  Located in the heart of the city, our modern studio provides a relaxing
-                  atmosphere where you can unwind while we take care of your style.
+                  Tọa lạc tại trung tâm thành phố, studio hiện đại của chúng tôi mang đến một không gian thư giãn, nơi bạn có thể thư giãn trong khi chúng tôi chăm sóc phong cách của bạn.
                 </p>
 
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xl">📍</div>
                     <div>
-                      <h4 className="font-bold text-white">Address</h4>
+                      <h4 className="font-bold text-white">Địa chỉ</h4>
                       <p className="text-slate-400">71/41, Đường Nguyễn Công Hoan, P7<br />Quận Phú Nhuận, TP.HCM</p>
                     </div>
                   </div>
@@ -268,16 +266,16 @@ function Dashboard() {
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xl">🕒</div>
                     <div>
-                      <h4 className="font-bold text-white">Opening Hours</h4>
-                      <p className="text-slate-400">Mon - Sat: 9:00 AM - 5:00 PM<br />Sunday: 9:00 AM - 5:00 PM</p>
+                      <h4 className="font-bold text-white">Giờ mở cửa</h4>
+                      <p className="text-slate-400">Thứ 2 - Thứ 7: 9:00 AM - 5:00 PM<br />Chủ Nhật: 9:00 AM - 5:00 PM</p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-xl">📞</div>
                     <div>
-                      <h4 className="font-bold text-white">Contact</h4>
-                      <p className="text-slate-400">0383018738<br />hello@theblueblade.com</p>
+                      <h4 className="font-bold text-white">Liên hệ</h4>
+                      <p className="text-slate-400">0383018738<br />theminh30205@gmail.com</p>
                     </div>
                   </div>
                 </div>
@@ -285,7 +283,7 @@ function Dashboard() {
             </div>
 
             {/* Mock Map / Image */}
-            <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-800 border block border-white/10 shadow-2xl">
+            <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-800 border block border-white/10 ">
               <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
                 <span className="text-slate-600 font-bold">Map Visualization Placeholder</span>
               </div>
@@ -311,3 +309,4 @@ function Dashboard() {
 }
 
 export default Dashboard;
+

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { appointmentAPI, authAPI } from "../services/api";
+import { appointmentAPI, authAPI, paymentAPI } from "../services/api";
 import { motion, AnimatePresence } from "framer-motion";
 
 function BarberDashboard() {
@@ -15,6 +15,14 @@ function BarberDashboard() {
   const [profileData, setProfileData] = useState({ name: "", phone: "", specialty: "", profileImage: "" });
   const [savingProfile, setSavingProfile] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
+
+  // Checkout Modal States
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutApt, setCheckoutApt] = useState(null);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -121,6 +129,58 @@ function BarberDashboard() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
+  };
+
+  const updateAptStatus = async (id, status) => {
+    try {
+      if (status === "completed") {
+         // Should checkout instead of generic update directly
+         const apt = appointments.find(a => a._id === id);
+         setCheckoutApt(apt);
+         setVoucherCode("");
+         setPaymentMethod("cash");
+         setCheckoutError("");
+         setShowCheckout(true);
+         return;
+      }
+      await appointmentAPI.updateAppointment(id, { status });
+      fetchAppointments(user);
+    } catch (err) {
+      console.error("Error updating status:", err);
+      alert(err.response?.data?.message || "Lỗi cập nhật trạng thái");
+    }
+  };
+
+  const handleCheckout = async () => {
+    setCheckoutLoading(true);
+    setCheckoutError("");
+    try {
+      if (paymentMethod === "cash") {
+         await appointmentAPI.updateAppointment(checkoutApt._id, { 
+             status: "completed", 
+             paymentStatus: "completed", 
+             voucherCode: voucherCode || undefined 
+         });
+         setShowCheckout(false);
+         fetchAppointments(user);
+      } else if (paymentMethod === "vnpay") {
+         // Apply voucher first if any, then create payment
+         if (voucherCode) {
+             await appointmentAPI.updateAppointment(checkoutApt._id, { voucherCode });
+         }
+         const res = await paymentAPI.createPayment({ appointmentId: checkoutApt._id });
+         if (res.data?.payUrl) {
+            window.location.href = res.data.payUrl;
+         } else {
+            setCheckoutError("Không thể tạo link thanh toán VNPAY.");
+         }
+      }
+    } catch (err) {
+      console.error(err);
+      setCheckoutError(err.response?.data?.message || "Lỗi khi thanh toán.");
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -272,7 +332,7 @@ function BarberDashboard() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate("/scanner")}
-              className="w-full aspect-[21/9] rounded-2xl bg-gradient-to-br from-[#1754cf] to-[#003ea7] flex space-y-2 flex-col items-center justify-center shadow-[0_10px_30px_rgba(23,84,207,0.3)] border border-[#b4c5ff]/20"
+              className="w-full aspect-[21/9] rounded-2xl bg-gradient-to-br from-[#1754cf] to-[#003ea7] flex space-y-2 flex-col items-center justify-center  border border-[#b4c5ff]/20"
             >
               <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mb-2 backdrop-blur-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><rect x="14" y="14" width="3" height="3"></rect></svg>
@@ -344,6 +404,26 @@ function BarberDashboard() {
                           "{apt.notes}"
                         </div>
                       )}
+
+                      <div className="flex gap-2 mt-4 items-center flex-wrap">
+                        <select 
+                           value={apt.status} 
+                           onChange={(e) => updateAptStatus(apt._id, e.target.value)}
+                           className="bg-[#111621] text-xs font-bold text-[#c3c6d6] border border-[#282a31] rounded-lg px-3 py-2 outline-none focus:border-[#1754cf] hover:border-[#434654] transition-colors appearance-none cursor-pointer"
+                           style={{ backgroundImage: 'linear-gradient(45deg, transparent 50%, #c3c6d6 50%), linear-gradient(135deg, #c3c6d6 50%, transparent 50%)', backgroundPosition: 'calc(100% - 15px) calc(1em + 2px), calc(100% - 10px) calc(1em + 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
+                        >
+                           <option value="pending">Pending</option>
+                           <option value="confirmed">Confirmed</option>
+                           <option value="cancelled">Cancelled</option>
+                           <option value="completed">✔ Hoàn thành (Thanh toán)</option>
+                        </select>
+                        <button 
+                           onClick={() => updateAptStatus(apt._id, "completed")}
+                           className="bg-green-500/10 text-green-400 hover:bg-green-500/20 px-4 py-2 rounded-lg text-xs font-bold border border-green-500/20 transition-colors ml-auto"
+                        >
+                           Thanh toán &rarr;
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -402,6 +482,97 @@ function BarberDashboard() {
 
       </main>
 
+      {/* Checkout Modal */}
+      <AnimatePresence>
+         {showCheckout && checkoutApt && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+               <motion.div 
+                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                 className="bg-[#1c2230] border border-[#282a31] rounded-2xl w-full max-w-md  overflow-hidden"
+               >
+                 <div className="px-6 py-4 bg-gradient-to-r from-[#1754cf] to-[#003ea7] flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-white">Thanh Toán Dịch Vụ</h3>
+                    <button onClick={() => setShowCheckout(false)} className="text-white/60 hover:text-white transition-colors">
+                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                    </button>
+                 </div>
+                 
+                 <div className="p-6 space-y-5">
+                    {/* Apt Info */}
+                    <div className="flex justify-between items-center bg-[#111621] p-4 rounded-xl border border-[#282a31]/50">
+                       <div>
+                          <p className="text-[#c3c6d6] text-xs font-bold uppercase mb-1">Khách hàng</p>
+                          <p className="text-white font-bold">{checkoutApt.customerId?.name || "Khách Vãng Lai"}</p>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-[#c3c6d6] text-xs font-bold uppercase mb-1">Tổng tiền</p>
+                          <p className="text-[#1754cf] font-bold text-lg">{Number(checkoutApt.totalPrice || checkoutApt.serviceId?.price).toLocaleString('vi-VN')} VND</p>
+                       </div>
+                    </div>
+
+                    {/* Voucher Code */}
+                    <div>
+                       <label className="block text-xs font-bold text-[#c3c6d6] mb-2 uppercase">Mã giảm giá (Nếu có)</label>
+                       <input 
+                         type="text" 
+                         value={voucherCode} 
+                         onChange={(e) => setVoucherCode(e.target.value)}
+                         placeholder="Nhập mã voucher..."
+                         className="w-full bg-[#111621] border border-[#282a31] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#1754cf] placeholder:text-[#c3c6d6]/40"
+                       />
+                    </div>
+
+                     {/* Payment Method */}
+                     <div>
+                        <label className="block text-xs font-bold text-[#c3c6d6] mb-2 uppercase">Phương thức thanh toán</label>
+                        <div className="grid grid-cols-2 gap-3">
+                           <button 
+                             onClick={() => setPaymentMethod("cash")}
+                             className={`py-3 rounded-lg border flex flex-col items-center justify-center gap-1 transition-colors ${paymentMethod === 'cash' ? 'bg-[#1754cf]/10 border-[#1754cf] text-[#1754cf]' : 'bg-[#111621] border-[#282a31] text-[#c3c6d6] hover:border-[#c3c6d6]'}`}
+                           >
+                              <span className="text-xl">💵</span>
+                              <span className="font-bold text-xs">Tiền mặt</span>
+                           </button>
+                           <button 
+                             onClick={() => setPaymentMethod("vnpay")}
+                             className={`py-3 rounded-lg border flex flex-col items-center justify-center gap-1 transition-colors ${paymentMethod === 'vnpay' ? 'bg-[#1754cf]/10 border-[#1754cf] text-[#1754cf]' : 'bg-[#111621] border-[#282a31] text-[#c3c6d6] hover:border-[#c3c6d6]'}`}
+                           >
+                              <span className="text-xl">💳</span>
+                              <span className="font-bold text-xs">VNPAY</span>
+                           </button>
+                        </div>
+                     </div>
+
+                    {checkoutError && (
+                       <div className="text-[#ffb4ab] text-sm font-bold bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 px-3 py-2 rounded-lg">
+                          {checkoutError}
+                       </div>
+                    )}
+                 </div>
+
+                 <div className="p-6 border-t border-[#282a31] flex gap-3">
+                    <button 
+                      onClick={() => setShowCheckout(false)}
+                      disabled={checkoutLoading}
+                      className="flex-1 bg-transparent border border-[#282a31] text-white py-3 rounded-xl font-bold hover:bg-[#282a31]"
+                    >
+                       Hủy
+                    </button>
+                    <button 
+                      onClick={handleCheckout}
+                      disabled={checkoutLoading}
+                      className="flex-1 bg-gradient-to-r from-[#1754cf] to-[#003ea7] hover:from-[#1349b8] hover:to-[#003185] text-white py-3 rounded-xl font-bold  /20 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                       {checkoutLoading ? "Đang xử lý..." : "Xác nhận & Hoàn tất"}
+                    </button>
+                 </div>
+               </motion.div>
+            </div>
+         )}
+      </AnimatePresence>
+
       {/* Global styles for custom scrollbar if needed */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -423,3 +594,4 @@ function BarberDashboard() {
 }
 
 export default BarberDashboard;
+

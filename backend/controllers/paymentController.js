@@ -23,7 +23,7 @@ function sortObject(obj) {
 
 // Function to format Vietnam time (GMT+7)
 function formatVNTime(date) {
-    const pad = (n) => (n < 10 ? '0' + n : n);
+    const pad = (n) => (n < 10 ? "0" + n : n);
     return date.getFullYear().toString() +
         pad(date.getMonth() + 1) +
         pad(date.getDate()) +
@@ -40,7 +40,7 @@ exports.createPayment = async (req, res) => {
             return res.status(400).json({ message: "appointmentId is required" });
         }
 
-        // Tìm kiếm linh hoạt: theo _id hoặc mã appointmentId tùy chỉnh
+        // Tìm kiếm linh hoạt
         let query = {};
         if (mongoose.Types.ObjectId.isValid(appointmentId)) {
             query = { _id: appointmentId };
@@ -63,7 +63,8 @@ exports.createPayment = async (req, res) => {
         const protocol = req.headers['x-forwarded-proto'] || 'http';
 
         if (!returnUrl || returnUrl.includes('localhost')) {
-            returnUrl = `${protocol}://${currentHost}/api/payment/vnpay-return`;
+            // Send back to the Frontend's payment result route
+            returnUrl = `${protocol}://${currentHost}/payment-result`;
         }
 
         const url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
@@ -71,11 +72,13 @@ exports.createPayment = async (req, res) => {
         const amount = Math.floor(appointment.totalPrice * 100);
         const txnRef = appointment.appointmentId;
 
+        // Xử lý IP từ Vercel (rất quan trọng để tránh lỗi 70)
         let ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
         if (typeof ipAddr === 'string' && ipAddr.includes(',')) {
             ipAddr = ipAddr.split(',')[0].trim();
         }
 
+        // GMT+7 Time handling
         const date = new Date();
         const vnOffset = 7 * 60 * 60 * 1000;
         const localOffset = date.getTimezoneOffset() * 60000;
@@ -101,12 +104,19 @@ exports.createPayment = async (req, res) => {
             'vnp_ExpireDate': expireDate
         };
 
+        // 1. Sort object
         vnpParams = sortObject(vnpParams);
+
+        // 2. Generate sign data
         const signData = qs.stringify(vnpParams, { encode: false });
+
+        // 3. HMAC SHA512
         const hmac = crypto.createHmac("sha512", hashSecret.trim());
         const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
 
         vnpParams['vnp_SecureHash'] = signed;
+
+        // 4. Encode Final URL
         const paymentUrl = url + '?' + qs.stringify(vnpParams, { encode: false });
 
         res.status(200).json({ payUrl: paymentUrl });
@@ -116,9 +126,10 @@ exports.createPayment = async (req, res) => {
     }
 };
 
+// Return URL handler
 exports.handleReturn = async (req, res) => {
     try {
-        let vnpParams = req.query;
+        let vnpParams = Object.assign({}, req.query);
         let secureHash = vnpParams['vnp_SecureHash'];
 
         delete vnpParams['vnp_SecureHash'];
@@ -128,10 +139,9 @@ exports.handleReturn = async (req, res) => {
 
         vnpParams = sortObject(vnpParams);
         const signData = qs.stringify(vnpParams, { encode: false });
+
         const hmac = crypto.createHmac("sha512", hashSecret.trim());
         const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
-
-        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
         if (secureHash === signed) {
             const responseCode = vnpParams['vnp_ResponseCode'];
@@ -150,19 +160,20 @@ exports.handleReturn = async (req, res) => {
                         { $inc: { completedCount: 1 } }
                     );
                 }
-                return res.redirect(`${frontendUrl}/profile?payment=success&ref=${txnRef}`);
+                return res.status(200).json({ success: true, message: "Payment successful", ref: txnRef });
             } else {
-                return res.redirect(`${frontendUrl}/profile?payment=failed&code=${responseCode}`);
+                return res.status(200).json({ success: false, message: "Payment failed", code: responseCode });
             }
         } else {
-            return res.redirect(`${frontendUrl}/profile?payment=invalid`);
+            return res.status(400).json({ success: false, message: "Invalid signature" });
         }
     } catch (error) {
         console.error("[VNPAY handleReturn Error]:", error);
-        res.status(500).json({ message: "Server error handling VNPAY return" });
+        res.status(500).json({ success: false, message: "Server error handling VNPAY return" });
     }
 };
 
+// IPN URL handler
 exports.handleIPN = async (req, res) => {
     try {
         let vnpParams = req.query;
@@ -176,6 +187,7 @@ exports.handleIPN = async (req, res) => {
 
         vnpParams = sortObject(vnpParams);
         const signData = qs.stringify(vnpParams, { encode: false });
+
         const hmac = crypto.createHmac("sha512", hashSecret.trim());
         const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
 
@@ -186,13 +198,16 @@ exports.handleIPN = async (req, res) => {
 
             const appt = await Appointment.findOne({ appointmentId: txnRef });
 
+            // 1. Check if order exists
             if (!appt) return res.status(200).json({ RspCode: '01', Message: 'Order not found' });
 
+            // 2. Check amount
             const expectedAmount = Math.round(appt.totalPrice) * 100;
             if (expectedAmount.toString() !== vnpAmount.toString()) {
                 return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
             }
 
+            // 3. Check order status
             if (appt.paymentStatus === 'paid') return res.status(200).json({ RspCode: '02', Message: 'Order already confirmed' });
 
             if (responseCode === "00" || responseCode === "07") {

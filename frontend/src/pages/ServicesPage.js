@@ -32,7 +32,7 @@ function ServicesPage() {
 
   // Group services by category
   const categories = [...new Set(services.map((s) => s.category || "Khác"))];
-  
+
   const groupedServices = categories.reduce((acc, category) => {
     acc[category] = services.filter((s) => (s.category || "Khác") === category);
     return acc;
@@ -71,27 +71,27 @@ function ServicesPage() {
       <main className="max-w-7xl mx-auto px-4 py-20 sm:px-6 lg:px-8">
         {/* Page Header */}
         <div className="text-center mb-20">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-7xl font-serif mb-6 tracking-tight"
           >
-            Our Services
+            Các dịch vụ của chúng tôi
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="text-xl text-slate-400 max-w-2xl mx-auto font-serif italic"
           >
-            Discover our premium grooming experiences, tailored for the modern gentleman.
+            Khám phá những dịch vụ làm tóc và chăm sóc dành cho phái mạnh.
           </motion.p>
         </div>
 
         {/* Category Navigation */}
         <div className="flex flex-wrap justify-center gap-4 mb-16">
           {categories.map((category) => (
-            <a 
+            <a
               key={category}
               href={`#${category.replace(/\s+/g, '-').toLowerCase()}`}
               className="px-6 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/30 transition-all text-sm font-medium tracking-widest uppercase"
@@ -104,8 +104,8 @@ function ServicesPage() {
         {/* Categorized Services */}
         <div className="space-y-24">
           {categories.map((category) => (
-            <section 
-              key={category} 
+            <section
+              key={category}
               id={category.replace(/\s+/g, '-').toLowerCase()}
               className="scroll-mt-32"
             >
@@ -116,7 +116,7 @@ function ServicesPage() {
                 <div className="h-px w-full bg-gradient-to-r from-blue-500/50 to-transparent"></div>
               </div>
 
-              <motion.div 
+              <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 whileInView="visible"
@@ -127,16 +127,16 @@ function ServicesPage() {
                   <motion.div
                     key={service._id}
                     variants={itemVariants}
-                    className="group bg-white/5 border border-white/5 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all duration-500 flex flex-col h-full shadow-2xl"
+                    className="group bg-white/5 border border-white/5 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all duration-500 flex flex-col h-full "
                   >
                     {/* Service Image */}
-                    <div 
+                    <div
                       className="relative h-64 overflow-hidden cursor-pointer"
                       onClick={() => navigate(`/services/${service._id}`)}
                     >
                       {service.image ? (
-                        <img 
-                          src={service.image} 
+                        <img
+                          src={service.image}
                           alt={service.name}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
@@ -148,7 +148,7 @@ function ServicesPage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-6">
                         <span className="text-white font-bold text-lg">View Details →</span>
                       </div>
-                      
+
                       {/* Popular Badge */}
                       {service.completedCount > 10 && (
                         <div className="absolute top-4 right-4 bg-blue-600/90 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full backdrop-blur-md">
@@ -160,7 +160,7 @@ function ServicesPage() {
                     {/* Service Content */}
                     <div className="p-8 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-4">
-                        <h3 
+                        <h3
                           className="text-xl font-serif font-bold group-hover:text-blue-400 transition-colors cursor-pointer"
                           onClick={() => navigate(`/services/${service._id}`)}
                         >
@@ -171,16 +171,16 @@ function ServicesPage() {
                           <p className="text-[10px] text-slate-500 uppercase tracking-widest">{service.duration} mins</p>
                         </div>
                       </div>
-                      
+
                       <p className="text-slate-400 text-sm leading-relaxed mb-8 flex-1">
                         {service.description || "Indulge in a premium grooming experience tailored specifically for your unique style and rejuvenation."}
                       </p>
 
                       <button
                         onClick={() => navigate("/appointments", { state: { serviceId: service._id } })}
-                        className="w-full py-4 bg-transparent border border-white/20 hover:bg-white hover:text-slate-950 transition-all duration-300 font-bold text-sm tracking-widest uppercase rounded-xl group-hover:border-white group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                        className="w-full py-4 bg-transparent border border-white/20 hover:bg-white hover:text-slate-950 transition-all duration-300 font-bold text-sm tracking-widest uppercase rounded-xl group-hover:border-white group-hover:"
                       >
-                        Book Appointment
+                        Đặt lịch ngay
                       </button>
                     </div>
                   </motion.div>
@@ -189,45 +189,18 @@ function ServicesPage() {
             </section>
           ))}
         </div>
-
-        {/* Satisfaction Guarantee */}
-        <motion.section 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="mt-32 p-12 rounded-3xl bg-blue-600/10 border border-blue-500/20 text-center"
-        >
-          <h2 className="text-3xl font-serif mb-6">Master Craftsmanship</h2>
-          <p className="text-slate-400 max-w-2xl mx-auto mb-10">
-            Every service at The Blue Blade is performed by our meticulously trained master barbers. We combine traditional techniques with modern styling to ensure you leave looking and feeling your absolute best.
-          </p>
-          <div className="flex flex-wrap justify-center gap-10">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🏆</span>
-              <span className="text-sm font-bold tracking-widest uppercase">Certified Masters</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">⚡</span>
-              <span className="text-sm font-bold tracking-widest uppercase">Premium Products</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">✨</span>
-              <span className="text-sm font-bold tracking-widest uppercase">Satisfaction Guaranteed</span>
-            </div>
-          </div>
-        </motion.section>
       </main>
 
       <footer className="py-20 text-center text-slate-600 text-sm border-t border-white/5 bg-slate-950/50">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl font-serif text-white mb-6 tracking-widest">THE BLUE BLADE</h2>
-          <p className="mb-8">Premium Grooming & Lifestyle Studio</p>
+          <p className="mb-8">Địa điểm làm đẹp của phái mạnh</p>
           <div className="flex justify-center gap-8 mb-12">
             <a href="#" className="hover:text-blue-400 transition-colors">Instagram</a>
             <a href="#" className="hover:text-blue-400 transition-colors">Facebook</a>
             <a href="#" className="hover:text-blue-400 transition-colors">Twitter</a>
           </div>
-          <p>&copy; {new Date().getFullYear()} The Blue Blade Barber Shop. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} The Blue Blade Barber Shop.</p>
         </div>
       </footer>
     </div>
@@ -235,3 +208,4 @@ function ServicesPage() {
 }
 
 export default ServicesPage;
+
