@@ -473,7 +473,7 @@ function AppointmentsPage() {
                                 whileHover={{ scale: 1.05, y: -5 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handleServiceSelect(service)}
-                                className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2 shadow-lg ${selectedServices.includes(service._id)
+                                className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2  ${selectedServices.includes(service._id)
                                   ? "border-blue-500 bg-blue-500/20 shadow-blue-500/20"
                                   : "border-transparent bg-white/5 hover:border-white/20 hover:bg-white/10"
                                   }`}
@@ -520,7 +520,7 @@ function AppointmentsPage() {
                       >
                         <button
                           onClick={() => setStep(2)}
-                          className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg"
+                          className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors "
                         >
                           Next Step: Choose Barber
                         </button>
@@ -551,7 +551,7 @@ function AppointmentsPage() {
                               setSelectedBarber(barber._id);
                               setStep(3);
                             }}
-                            className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2 shadow-lg ${selectedBarber === barber._id
+                            className={`flex flex-col gap-3 p-4 rounded-lg cursor-pointer transition-all border-2  ${selectedBarber === barber._id
                               ? "border-blue-500 bg-blue-500/20 shadow-blue-500/20"
                               : "border-transparent bg-white/5 hover:border-white/20 hover:bg-white/10"
                               }`}
@@ -704,7 +704,7 @@ function AppointmentsPage() {
                                     onClick={() => !isBooked && handleTimeSelect(slot.formattedTime)}
                                     disabled={isBooked}
                                     className={`py-3 px-4 rounded-lg font-medium text-sm transition-all ${selectedTime === slot.formattedTime
-                                      ? "border-2 border-blue-600 bg-blue-600/20 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                                      ? "border-2 border-blue-600 bg-blue-600/20 text-white "
                                       : isBooked
                                         ? "border border-white/5 bg-white/5 text-white/20 cursor-not-allowed line-through"
                                         : "border border-white/10 bg-white/5 text-white hover:border-blue-600 hover:bg-blue-600/10"
@@ -887,7 +887,7 @@ function AppointmentsPage() {
                         selectedBarber &&
                         appointmentDate &&
                         !bookingLoading
-                        ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:shadow-lg hover:shadow-blue-500/50 hover:scale-105"
+                        ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover: hover:shadow-blue-500/50 hover:scale-105"
                         : "bg-white/10 text-white/50 cursor-not-allowed"
                         }`}
                     >
@@ -913,7 +913,7 @@ function AppointmentsPage() {
       {/* REVIEW MODAL */}
       {showReviewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl border border-white/10 p-6">
+          <div className="bg-slate-800 w-full max-w-md rounded-2xl  border border-white/10 p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-white">Đánh giá Dịch Vụ</h3>
               <button onClick={() => setShowReviewModal(false)} className="text-white/50 hover:text-white text-2xl">&times;</button>
@@ -961,3 +961,4 @@ function AppointmentsPage() {
 }
 
 export default AppointmentsPage;
+

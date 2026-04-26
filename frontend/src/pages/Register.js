@@ -41,7 +41,7 @@ function Register() {
       <Header />
 
       <main className="flex-grow flex justify-center items-center px-4 relative py-12">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-10 shadow-2xl w-full max-w-md backdrop-blur-sm relative">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-10  w-full max-w-md backdrop-blur-sm relative">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
               Create Account
@@ -114,7 +114,7 @@ function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:scale-[1.02] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-xl  shadow-blue-500/25 hover:scale-[1.02] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {loading ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
             </button>
@@ -139,3 +139,4 @@ function Register() {
 }
 
 export default Register;
+

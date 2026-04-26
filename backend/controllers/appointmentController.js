@@ -197,8 +197,8 @@ exports.getAppointmentById = async (req, res) => {
 // Update appointment
 exports.updateAppointment = async (req, res) => {
   try {
-    const { status, notes, paymentStatus } = req.body;
-    const oldAppointment = await Appointment.findById(req.params.id);
+    const { status, notes, paymentStatus, voucherCode, totalAmount } = req.body;
+    let oldAppointment = await Appointment.findById(req.params.id).populate("serviceIds");
     if (!oldAppointment) return res.status(404).json({ message: "Appointment not found" });
 
     // Guard: cannot mark as 'completed' if payment is still pending
@@ -212,6 +212,24 @@ exports.updateAppointment = async (req, res) => {
     if (status) updateFields.status = status;
     if (notes !== undefined) updateFields.notes = notes;
     if (paymentStatus) updateFields.paymentStatus = paymentStatus;
+
+    if (voucherCode) {
+      const Voucher = require("../models/Voucher");
+      const voucher = await Voucher.findOne({ code: voucherCode.toUpperCase(), isActive: true });
+      if (voucher && voucher.usedCount < voucher.usageLimit) {
+         voucher.usedCount += 1;
+         await voucher.save();
+         
+         const basePrice = oldAppointment.serviceIds.reduce((sum, s) => sum + (s.price || 0), 0);
+         const discountedPrice = basePrice * (1 - voucher.discountPercent / 100);
+         updateFields.totalPrice = discountedPrice;
+      } else {
+         return res.status(400).json({ message: "Mã giảm giá không hợp lệ hoặc đã hết lượt sử dụng." });
+      }
+    } else if (totalAmount !== undefined && !voucherCode) {
+         // Allow direct override from barber if needed (fallback) 
+         updateFields.totalPrice = totalAmount;
+    }
 
     const appointment = await Appointment.findByIdAndUpdate(
       req.params.id,

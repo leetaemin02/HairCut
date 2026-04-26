@@ -63,7 +63,8 @@ exports.createPayment = async (req, res) => {
         const protocol = req.headers['x-forwarded-proto'] || 'http';
 
         if (!returnUrl || returnUrl.includes('localhost')) {
-            returnUrl = `${protocol}://${currentHost}/api/payment/vnpay-return`;
+            // Send back to the Frontend's payment result route
+            returnUrl = `${protocol}://${currentHost}/payment-result`;
         }
 
         const url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
@@ -128,7 +129,7 @@ exports.createPayment = async (req, res) => {
 // Return URL handler
 exports.handleReturn = async (req, res) => {
     try {
-        let vnpParams = req.query;
+        let vnpParams = Object.assign({}, req.query);
         let secureHash = vnpParams['vnp_SecureHash'];
 
         delete vnpParams['vnp_SecureHash'];
@@ -141,8 +142,6 @@ exports.handleReturn = async (req, res) => {
 
         const hmac = crypto.createHmac("sha512", hashSecret.trim());
         const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
-
-        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
         if (secureHash === signed) {
             const responseCode = vnpParams['vnp_ResponseCode'];
@@ -161,16 +160,16 @@ exports.handleReturn = async (req, res) => {
                         { $inc: { completedCount: 1 } }
                     );
                 }
-                return res.redirect(`${frontendUrl}/profile?payment=success&ref=${txnRef}`);
+                return res.status(200).json({ success: true, message: "Payment successful", ref: txnRef });
             } else {
-                return res.redirect(`${frontendUrl}/profile?payment=failed&code=${responseCode}`);
+                return res.status(200).json({ success: false, message: "Payment failed", code: responseCode });
             }
         } else {
-            return res.redirect(`${frontendUrl}/profile?payment=invalid`);
+            return res.status(400).json({ success: false, message: "Invalid signature" });
         }
     } catch (error) {
         console.error("[VNPAY handleReturn Error]:", error);
-        res.status(500).json({ message: "Server error handling VNPAY return" });
+        res.status(500).json({ success: false, message: "Server error handling VNPAY return" });
     }
 };
 

@@ -127,7 +127,7 @@ function ServicesPage() {
                   <motion.div
                     key={service._id}
                     variants={itemVariants}
-                    className="group bg-white/5 border border-white/5 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all duration-500 flex flex-col h-full shadow-2xl"
+                    className="group bg-white/5 border border-white/5 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all duration-500 flex flex-col h-full "
                   >
                     {/* Service Image */}
                     <div
@@ -178,7 +178,7 @@ function ServicesPage() {
 
                       <button
                         onClick={() => navigate("/appointments", { state: { serviceId: service._id } })}
-                        className="w-full py-4 bg-transparent border border-white/20 hover:bg-white hover:text-slate-950 transition-all duration-300 font-bold text-sm tracking-widest uppercase rounded-xl group-hover:border-white group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                        className="w-full py-4 bg-transparent border border-white/20 hover:bg-white hover:text-slate-950 transition-all duration-300 font-bold text-sm tracking-widest uppercase rounded-xl group-hover:border-white group-hover:"
                       >
                         Đặt lịch ngay
                       </button>
@@ -208,3 +208,4 @@ function ServicesPage() {
 }
 
 export default ServicesPage;
+

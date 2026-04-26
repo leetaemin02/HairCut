@@ -75,7 +75,7 @@ function AboutPage() {
               transition={{ delay: 0.3, duration: 1 }}
               className="text-5xl md:text-7xl font-bold text-white tracking-tighter leading-tight"
             >
-              The Modern Craftsman.
+              The Blue Blade
             </motion.h1>
             <motion.p
               initial={{ y: 20, opacity: 0 }}
@@ -83,7 +83,7 @@ function AboutPage() {
               transition={{ delay: 0.5, duration: 1 }}
               className="text-lg md:text-2xl text-[#c3c6d6] max-w-2xl mx-auto font-light"
             >
-              Where heritage meets precision. We redefine men's grooming by blending the raw, tactile nature of high-end barbering with a masterful atmosphere.
+              Nơi mà bạn nên ghé tới sau chuỗi ngày dài mệt mỏi. Chúng tôi định nghĩa lại việc chăm sóc sắc đẹp nam giới bằng cách kết hợp sự tinh tế của nghề cắt tóc với một bầu không khí thư giãn.
             </motion.p>
           </div>
         </motion.section>
@@ -97,13 +97,13 @@ function AboutPage() {
             variants={fadeIn}
             className="max-w-4xl mx-auto text-center"
           >
-            <h2 className="text-[12px] md:text-sm font-bold tracking-[0.2em] text-[#1754cf] uppercase mb-4">Our Heritage</h2>
+            <h2 className="text-[12px] md:text-sm font-bold tracking-[0.2em] text-[#1754cf] uppercase mb-4">Nguồn gốc của The Blue Blade</h2>
             <h3 className="text-3xl md:text-5xl font-bold mb-8 text-white tracking-tight">Crafting Confidence Since Day One</h3>
             <p className="text-lg text-[#c3c6d6] leading-relaxed mb-6 font-light">
-              Founded on the belief that a haircut is more than just a trim—it's a ritual. Our founders envisioned a space free from the sterile environment of modern salons and the loud chaos of traditional street barbers. Obsidian Groom was established to provide an atmosphere of luxury, mastery, and relaxation.
+              Được thành lập dựa trên niềm khát khao làm đẹp cho các cánh đàn ông các bạn trẻ, nơi mà bạn có thể tin tưởng. Tôi mong muốn tạo ra một không gian không bị ảnh hưởng bởi những yếu tố bên ngoài và sự hỗn loạn ồn ào của nhịp sống nhộn nhịp nơi thành thị. The Blue Blade được thành lập để cung cấp một bầu không khí sang trọng, chuyên nghiệp và thư giãn.
             </p>
             <p className="text-lg text-[#c3c6d6] leading-relaxed font-light">
-              Every detail, from the leather of our chairs to the edge of our blades, is meticulously curated. Our development over the years hasn't been about opening more shops, but refining the singular experience we provide. We don't just cut hair; we sculpt character.
+              Mỗi chi tiết, từ chiếc ghế bọc da đến lưỡi dao sắc bén, đều được tuyển chọn tỉ mỉ và cẩn thận. Sự phát triển của chúng tôi trong những năm qua không nằm ở việc mở thêm cửa hàng, mà là hoàn thiện trải nghiệm độc đáo mà chúng tôi mang lại. Chúng tôi không chỉ cắt tóc; chúng tôi tạo nên phong cách cho bạn.
             </p>
           </motion.div>
         </section>
@@ -126,8 +126,8 @@ function AboutPage() {
                 71/41, Phú Nhuận,<br />
                 TP.HCM, Vietnam
               </p>
-              <a href="https://maps.google.com" target="_blank" rel="noreferrer" className="mt-8 text-[#1754cf] font-medium text-sm tracking-widest uppercase hover:text-white transition-colors">
-                Get Directions →
+              <a href="https://maps.app.goo.gl/5JDDp2rfh4fWGg8p6" target="_blank" rel="noreferrer" className="mt-8 text-[#1754cf] font-medium text-sm tracking-widest uppercase hover:text-white transition-colors">
+                Xem vị trí tại đây →
               </a>
             </motion.div>
 
@@ -135,10 +135,10 @@ function AboutPage() {
               <div className="w-14 h-14 rounded-full bg-[#1754cf]/10 flex items-center justify-center text-2xl mb-6 text-[#b4c5ff]">
                 📞
               </div>
-              <h4 className="text-xl font-bold text-white mb-2">Book an Appointment</h4>
+              <h4 className="text-xl font-bold text-white mb-2">Đặt lịch hẹn</h4>
               <p className="text-[#c3c6d6] text-lg leading-relaxed">
-                Give us a call to secure your spot.<br />
-                Walk-ins are subject to availability.
+                Gọi cho chúng tôi để đặt lịch hẹn.<br />
+                Việc đặt lịch hẹn có thể thay đổi tùy thuộc múi giờ.
               </p>
               <a href="tel:0383018738" className="mt-8 text-3xl font-bold text-white hover:text-[#1754cf] transition-colors">
                 0383018738
@@ -157,8 +157,8 @@ function AboutPage() {
               variants={fadeIn}
               className="text-center mb-20"
             >
-              <h2 className="text-[12px] md:text-sm font-bold tracking-[0.2em] text-[#1754cf] uppercase mb-4">The Team</h2>
-              <h3 className="text-3xl md:text-5xl font-bold text-white">Meet Our Craftsmen</h3>
+              <h2 className="text-[12px] md:text-sm font-bold tracking-[0.2em] text-[#1754cf] uppercase mb-4">Thành viên The Blue Blade</h2>
+              <h3 className="text-3xl md:text-5xl font-bold text-white">Các thợ cắt tóc của chúng tôi</h3>
             </motion.div>
 
             <div
@@ -214,3 +214,4 @@ function AboutPage() {
 }
 
 export default AboutPage;
+

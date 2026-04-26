@@ -15,6 +15,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ServicesPage from "./pages/ServicesPage";
 import AboutPage from "./pages/AboutPage";
 import BarberDashboard from "./pages/BarberDashboard";
+import PaymentResult from "./pages/PaymentResult";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import AIChatbot from "./components/AIChatbot/AIChatbot";
 import "./App.css";
 
@@ -29,6 +32,8 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route
           path="/appointments"
           element={
@@ -87,6 +92,14 @@ function App() {
           element={
             <ProtectedRoute>
               <BarberDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment-result"
+          element={
+            <ProtectedRoute>
+              <PaymentResult />
             </ProtectedRoute>
           }
         />

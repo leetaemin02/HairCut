@@ -1,4 +1,5 @@
 const Voucher = require("../models/Voucher");
+const Appointment = require("../models/Appointment");
 
 // Get all vouchers (Admin)
 exports.getVouchers = async (req, res) => {
@@ -10,11 +11,52 @@ exports.getVouchers = async (req, res) => {
     }
 };
 
+// Get vouchers for specific user (Customer)
+exports.getUserVouchers = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userRole = req.user.role;
+
+        // Fetch completed appointments for user
+        const completedCount = await Appointment.countDocuments({
+            customerId: userId,
+            status: "completed"
+        });
+
+        // Current Date for expiry check
+        const now = new Date();
+
+        // Base query: isActive is true, and expiry_date is either null or > now
+        const baseQuery = {
+            isActive: true,
+            $or: [{ expiryDate: { $exists: false } }, { expiryDate: null }, { expiryDate: { $gt: now } }]
+        };
+
+        const activeVouchers = await Voucher.find(baseQuery).sort({ createdAt: -1 });
+
+        // Filter based on target audience
+        const eligibleVouchers = activeVouchers.filter(v => {
+            if (v.targetAudience === 'all') return true;
+            if (v.targetAudience === 'new_user' && completedCount === 0) return true;
+            if (v.targetAudience === 'vip' && completedCount >= 5) return true;
+            if (v.targetAudience === 'staff' && (userRole === 'admin' || userRole === 'staff')) return true;
+            return false;
+        });
+
+        res.status(200).json(eligibleVouchers);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Create a new voucher
 exports.createVoucher = async (req, res) => {
     try {
-        const { code, discountPercent, usageLimit, isActive } = req.body;
-        const newVoucher = new Voucher({ code, discountPercent, usageLimit, isActive });
+        const { code, discountPercent, usageLimit, isActive, title, description, type, targetAudience, expiryDate } = req.body;
+        const newVoucher = new Voucher({ 
+            code, discountPercent, usageLimit, isActive, 
+            title, description, type, targetAudience, expiryDate 
+        });
         await newVoucher.save();
         res.status(201).json(newVoucher);
     } catch (error) {
