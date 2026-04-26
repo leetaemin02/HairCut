@@ -94,7 +94,7 @@ function ServicesPage() {
             <a
               key={category}
               href={`#${category.replace(/\s+/g, '-').toLowerCase()}`}
-              className="px-6 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/30 transition-all text-sm font-medium tracking-widest uppercase"
+              className="px-6 py-2 rounded-md border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/30 transition-all text-sm font-medium tracking-widest uppercase"
             >
               {category}
             </a>
@@ -178,7 +178,7 @@ function ServicesPage() {
 
                       <button
                         onClick={() => navigate("/appointments", { state: { serviceId: service._id } })}
-                        className="w-full py-4 bg-transparent border border-white/20 hover:bg-white hover:text-slate-950 transition-all duration-300 font-bold text-sm tracking-widest uppercase rounded-xl group-hover:border-white group-hover:"
+                        className="w-full py-4 bg-transparent border border-white/20 hover:bg-white hover:text-slate-950 transition-all duration-300 font-bold text-sm tracking-widest uppercase rounded-md group-hover:border-white group-hover:"
                       >
                         Đặt lịch ngay
                       </button>

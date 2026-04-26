@@ -14,6 +14,10 @@
     @apply bg-gray-100 text-gray-900;
   }
 
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+  }
+
   button {
     @apply cursor-pointer;
     font-family: inherit;
