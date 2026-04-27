@@ -47,12 +47,12 @@ function ProfilePage() {
             });
             if (response.ok) {
                 const data = await response.json();
-                
+
                 // Map the DB formats to match our UI mapping
                 const mappedVouchers = data.map(v => {
                     let typeText = v.type || "DISCOUNT";
-                    let expiryText = v.expiryDate 
-                        ? `HSD: ${new Date(v.expiryDate).toLocaleDateString('vi-VN')}` 
+                    let expiryText = v.expiryDate
+                        ? `HSD: ${new Date(v.expiryDate).toLocaleDateString('vi-VN')}`
                         : "Vĩnh viễn";
 
                     // Determine "new" flag if created within 7 days
@@ -61,7 +61,7 @@ function ProfilePage() {
                         const created = new Date(v.createdAt);
                         const now = new Date();
                         const diffTime = Math.abs(now - created);
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                         isNew = diffDays <= 7;
                     }
 
@@ -75,7 +75,7 @@ function ProfilePage() {
                         isNew: isNew
                     };
                 });
-                
+
                 setAvailableVouchers(mappedVouchers);
             }
         } catch (err) {
@@ -321,7 +321,7 @@ function ProfilePage() {
                     <div className="text-center md:text-left flex-1 relative z-10">
                         <h1 className="text-3xl font-bold text-white mb-2 font-serif">{user?.name}</h1>
                         <p className="text-[#a7b7ed] font-medium mb-4">{user?.email}</p>
-                        <div className="inline-block px-4 py-1 bg-[#1754cf]/20 border border-[#1754cf]/30 rounded-full text-[#b4c5ff] text-xs font-bold uppercase tracking-widest shadow-inner">
+                        <div className="inline-block px-4 py-1 bg-[#1754cf]/20 border border-[#1754cf]/30 rounded-md text-[#b4c5ff] text-xs font-bold uppercase tracking-widest shadow-inner">
                             {user?.role} Account
                         </div>
                     </div>
@@ -335,7 +335,7 @@ function ProfilePage() {
                         <div className="bg-[#1c2230] border border-[#282a31] rounded-2xl p-4  sticky top-28 space-y-2">
                             <button
                                 onClick={() => switchTab("profile")}
-                                className={`w-full text-left px-5 py-4 rounded-xl transition-all duration-300 flex items-center gap-4 ${activeTab === 'profile' ? 'bg-[#1754cf] text-white  shadow-[#1754cf]/20' : 'text-[#c3c6d6] hover:bg-[#232a3a] hover:text-white'}`}
+                                className={`w-full text-left px-5 py-4 rounded-md transition-all duration-300 flex items-center gap-4 ${activeTab === 'profile' ? 'bg-[#1754cf] text-white  shadow-[#1754cf]/20' : 'text-[#c3c6d6] hover:bg-[#232a3a] hover:text-white'}`}
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                                 <span className="font-semibold tracking-wide text-sm">Hồ Sơ Cá Nhân</span>
@@ -343,7 +343,7 @@ function ProfilePage() {
 
                             <button
                                 onClick={() => switchTab("history")}
-                                className={`w-full text-left px-5 py-4 rounded-xl transition-all duration-300 flex items-center gap-4 ${activeTab === 'history' ? 'bg-[#1754cf] text-white  shadow-[#1754cf]/20' : 'text-[#c3c6d6] hover:bg-[#232a3a] hover:text-white'}`}
+                                className={`w-full text-left px-5 py-4 rounded-md transition-all duration-300 flex items-center gap-4 ${activeTab === 'history' ? 'bg-[#1754cf] text-white  shadow-[#1754cf]/20' : 'text-[#c3c6d6] hover:bg-[#232a3a] hover:text-white'}`}
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 <span className="font-semibold tracking-wide text-sm">Lịch Sử Cắt Tóc</span>
@@ -351,14 +351,14 @@ function ProfilePage() {
 
                             <button
                                 onClick={() => switchTab("voucher")}
-                                className={`w-full text-left px-5 py-4 rounded-xl transition-all duration-300 flex items-center justify-between gap-4 ${activeTab === 'voucher' ? 'bg-[#1754cf] text-white  shadow-[#1754cf]/20' : 'text-[#c3c6d6] hover:bg-[#232a3a] hover:text-white'}`}
+                                className={`w-full text-left px-5 py-4 rounded-md transition-all duration-300 flex items-center justify-between gap-4 ${activeTab === 'voucher' ? 'bg-[#1754cf] text-white  shadow-[#1754cf]/20' : 'text-[#c3c6d6] hover:bg-[#232a3a] hover:text-white'}`}
                             >
                                 <div className="flex items-center gap-4">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     <span className="font-semibold tracking-wide text-sm">Ví Voucher</span>
                                 </div>
                                 {availableVouchers.length > 0 && (
-                                    <span className="bg-amber-500 text-[#111621] text-[10px] px-2.5 py-1 rounded-full font-black uppercase ">
+                                    <span className="bg-amber-500 text-[#111621] text-[10px] px-2.5 py-1 rounded-md font-black uppercase ">
                                         {availableVouchers.length} Mã
                                     </span>
                                 )}
@@ -376,7 +376,7 @@ function ProfilePage() {
                                     {!isEditing && (
                                         <button
                                             onClick={() => setIsEditing(true)}
-                                            className="px-6 py-2.5 bg-[#1754cf] hover:bg-[#1349b8] text-white text-sm font-bold tracking-wide rounded-lg transition-colors border border-[#1754cf]/50 box- hover:shadow-[0_0_15px_rgba(23,84,207,0.4)]"
+                                            className="px-6 py-2.5 bg-[#1754cf] hover:bg-[#1349b8] text-white text-sm font-bold tracking-wide rounded-md transition-colors border border-[#1754cf]/50 box- hover:shadow-[0_0_15px_rgba(23,84,207,0.4)]"
                                         >
                                             Chỉnh sửa
                                         </button>
@@ -435,7 +435,7 @@ function ProfilePage() {
                                             <button
                                                 type="submit"
                                                 disabled={saving}
-                                                className="px-8 py-3 bg-[#1754cf] hover:bg-[#1349b8] border border-[#1754cf]/50 text-white font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(23,84,207,0.3)] min-w-[150px]"
+                                                className="px-8 py-3 bg-[#1754cf] hover:bg-[#1349b8] border border-[#1754cf]/50 text-white font-bold rounded-md transition-all shadow-[0_0_15px_rgba(23,84,207,0.3)] min-w-[150px]"
                                             >
                                                 {saving ? "Đang lưu..." : "Lưu thay đổi"}
                                             </button>
@@ -443,7 +443,7 @@ function ProfilePage() {
                                                 type="button"
                                                 onClick={handleCancelEdit}
                                                 disabled={saving}
-                                                className="px-8 py-3 bg-[#111621] hover:bg-[#282a31] border border-[#282a31] text-white font-bold rounded-lg transition-all"
+                                                className="px-8 py-3 bg-[#111621] hover:bg-[#282a31] border border-[#282a31] text-white font-bold rounded-md transition-all"
                                             >
                                                 Hủy bỏ
                                             </button>
@@ -491,7 +491,7 @@ function ProfilePage() {
                                                 <button
                                                     key={filter.id}
                                                     onClick={() => setStatusFilter(filter.id)}
-                                                    className={`px-4 py-2 rounded-lg text-xs tracking-widest uppercase font-bold transition-all border ${statusFilter === filter.id
+                                                    className={`px-4 py-2 rounded-md text-xs tracking-widest uppercase font-bold transition-all border ${statusFilter === filter.id
                                                         ? "bg-[#1754cf] text-white border-[#1754cf]"
                                                         : "bg-[#111621] text-[#c3c6d6] border-[#282a31] hover:bg-[#282a31] hover:text-white"
                                                         }`}
@@ -512,7 +512,7 @@ function ProfilePage() {
                                             <div className="text-white text-lg font-serif mb-6">Trống trơn. Bạn chưa có lịch hẹn nào.</div>
                                             <button
                                                 onClick={() => navigate("/appointments")}
-                                                className="px-8 py-3 bg-[#1754cf] hover:bg-[#1349b8] text-white text-sm tracking-wide font-bold rounded-lg transition-all border border-[#1754cf]/50 hover:shadow-[0_0_15px_rgba(23,84,207,0.4)]"
+                                                className="px-8 py-3 bg-[#1754cf] hover:bg-[#1349b8] text-white text-sm tracking-wide font-bold rounded-md transition-all border border-[#1754cf]/50 hover:shadow-[0_0_15px_rgba(23,84,207,0.4)]"
                                             >
                                                 + Đặt lịch cắt tóc ngay
                                             </button>
@@ -537,7 +537,7 @@ function ProfilePage() {
                                                                     <div className="text-[#a7b7ed] font-medium text-sm">{Number(appointment.totalPrice).toLocaleString('vi-VN')} VNĐ</div>
                                                                 </div>
                                                             </div>
-                                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getStatusColor(appointment.status)}`}>
+                                                            <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border ${getStatusColor(appointment.status)}`}>
                                                                 {appointment.status === 'confirmed' ? 'Đã duyệt' : appointment.status === 'completed' ? 'Thành công' : appointment.status === 'cancelled' ? 'Hủy bỏ' : appointment.status}
                                                             </span>
                                                         </div>
@@ -558,14 +558,14 @@ function ProfilePage() {
                                                         {appointment.status === "confirmed" && appointment.paymentStatus !== "paid" && (
                                                             <button
                                                                 onClick={() => navigate("/payment", { state: { appointment } })}
-                                                                className="px-5 py-2.5 font-bold text-xs uppercase tracking-widest text-white rounded-lg bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 shadow-[0_0_15px_rgba(245,158,11,0.3)] border border-yellow-500/50"
+                                                                className="px-5 py-2.5 font-bold text-xs uppercase tracking-widest text-white rounded-md bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 shadow-[0_0_15px_rgba(245,158,11,0.3)] border border-yellow-500/50"
                                                             >
                                                                 Thanh toán VNPay
                                                             </button>
                                                         )}
 
                                                         {appointment.paymentStatus === "paid" && (
-                                                            <div className="px-5 py-2.5 text-center text-xs uppercase tracking-widest font-bold rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                                                            <div className="px-5 py-2.5 text-center text-xs uppercase tracking-widest font-bold rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
                                                                 Đã Thanh Toán
                                                             </div>
                                                         )}
@@ -573,7 +573,7 @@ function ProfilePage() {
                                                         {appointment.status !== "cancelled" && appointment.status !== "completed" && (
                                                             <button
                                                                 onClick={() => confirmCancelAppointment(appointment)}
-                                                                className="px-5 py-2.5 border border-[#282a31] hover:border-rose-500/50 bg-[#1c2230] hover:bg-rose-500/10 text-[#c3c6d6] hover:text-rose-400 text-xs uppercase tracking-widest font-bold rounded-lg transition-all"
+                                                                className="px-5 py-2.5 border border-[#282a31] hover:border-rose-500/50 bg-[#1c2230] hover:bg-rose-500/10 text-[#c3c6d6] hover:text-rose-400 text-xs uppercase tracking-widest font-bold rounded-md transition-all"
                                                             >
                                                                 Hủy Lịch
                                                             </button>
@@ -608,11 +608,11 @@ function ProfilePage() {
                                     {availableVouchers.length > 0 ? availableVouchers.map((voucher) => (
                                         <div key={voucher.id} className="relative group bg-[#111621] border border-[#282a31] rounded-2xl hover:border-[#1754cf]/50 transition-all duration-300 overflow-hidden flex flex-col hover:-translate-y-1 hover:">
                                             {voucher.isNew && (
-                                                <div className="absolute top-4 right-4 bg-amber-500 text-[#111621] text-[9px] uppercase tracking-widest font-black px-3 py-1 rounded-full  z-10">Mới</div>
+                                                <div className="absolute top-4 right-4 bg-amber-500 text-[#111621] text-[9px] uppercase tracking-widest font-black px-3 py-1 rounded-md  z-10">Mới</div>
                                             )}
                                             <div className="p-6 flex-1 flex flex-col">
                                                 <div className="flex items-center gap-4 mb-5">
-                                                    <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl border
+                                                    <div className={`w-14 h-14 rounded-md flex items-center justify-center font-bold text-xl border
                                                         ${voucher.type === 'DISCOUNT' ? 'bg-[#1754cf]/10 text-[#1754cf] border-[#1754cf]/30' :
                                                             voucher.type === 'GIFT' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' :
                                                                 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`}
@@ -682,14 +682,14 @@ function ProfilePage() {
                             <button
                                 onClick={() => { setShowCancelDialog(false); setAppointmentToCancel(null); }}
                                 disabled={cancelling}
-                                className="flex-1 px-4 py-3 bg-[#111621] hover:bg-[#282a31] border border-[#282a31] text-[#c3c6d6] hover:text-white text-xs uppercase tracking-widest font-bold rounded-lg transition-all"
+                                className="flex-1 px-4 py-3 bg-[#111621] hover:bg-[#282a31] border border-[#282a31] text-[#c3c6d6] hover:text-white text-xs uppercase tracking-widest font-bold rounded-md transition-all"
                             >
                                 Giữ Lại
                             </button>
                             <button
                                 onClick={handleCancelAppointment}
                                 disabled={cancelling}
-                                className="flex-1 px-4 py-3 bg-rose-600 hover:bg-rose-700 border border-rose-500/50 text-white text-xs uppercase tracking-widest font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(225,29,72,0.3)]"
+                                className="flex-1 px-4 py-3 bg-rose-600 hover:bg-rose-700 border border-rose-500/50 text-white text-xs uppercase tracking-widest font-bold rounded-md transition-all shadow-[0_0_15px_rgba(225,29,72,0.3)]"
                             >
                                 {cancelling ? "Đang xử lý..." : "Hủy Bỏ"}
                             </button>
@@ -706,4 +706,3 @@ function ProfilePage() {
 }
 
 export default ProfilePage;
-

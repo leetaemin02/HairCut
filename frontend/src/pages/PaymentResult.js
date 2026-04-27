@@ -7,7 +7,7 @@ function PaymentResult() {
   const [status, setStatus] = useState("loading"); // loading, success, failed
   const [message, setMessage] = useState("Đang xử lý kết quả thanh toán...");
   const [user, setUser] = useState(null);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -43,7 +43,7 @@ function PaymentResult() {
   return (
     <div className="bg-[#111621] min-h-screen text-[#e2e2ec] flex flex-col">
       <Header user={user} />
-      
+
       <main className="flex-1 flex items-center justify-center p-6">
         <div className="bg-[#1c2230] border border-[#282a31] rounded-2xl w-full max-w-md p-8 text-center shadow-2xl">
           {status === "loading" && (
@@ -61,7 +61,7 @@ function PaymentResult() {
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Thanh toán thành công!</h2>
               <p className="text-[#c3c6d6] mb-6">{message}</p>
-              <button 
+              <button
                 onClick={() => navigate("/profile")}
                 className="bg-gradient-to-r from-[#1754cf] to-[#003ea7] hover:from-[#1349b8] hover:to-[#003185] text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-[#1754cf]/20"
               >
@@ -77,7 +77,7 @@ function PaymentResult() {
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Giao dịch thất bại</h2>
               <p className="text-[#c3c6d6] mb-6">{message}</p>
-              <button 
+              <button
                 onClick={() => navigate("/profile")}
                 className="bg-transparent border border-[#282a31] hover:bg-[#282a31] text-white px-6 py-3 rounded-xl font-bold transition-all"
               >

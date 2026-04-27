@@ -25,7 +25,7 @@ function QRScanner() {
       try {
         if (scanning) {
           stream = await navigator.mediaDevices.getUserMedia({
-             video: { facingMode: "environment" } 
+            video: { facingMode: "environment" }
           });
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
@@ -115,7 +115,7 @@ function QRScanner() {
             The Blue Blade
           </h2>
         </div>
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="text-[#c3c6d6] text-sm font-bold bg-[#1c2230] px-4 py-2 rounded-lg hover:bg-[#282a31] transition-colors border border-[#282a31]"
         >
@@ -174,15 +174,15 @@ function QRScanner() {
                     <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#1754cf]"></div>
                     <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#1754cf]"></div>
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#1754cf]"></div>
-                    
+
                     <div className="absolute left-0 right-0 h-1 bg-[#1754cf]/80 shadow-[0_0_15px_rgba(23,84,207,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
                   </div>
                 </div>
-                
+
                 <canvas ref={canvasRef} className="hidden" />
-                
+
                 <p className="mt-6 text-[#c3c6d6] text-sm animate-pulse">Position QR code inside the frame...</p>
-                
+
                 <button
                   onClick={() => setScanning(false)}
                   className="mt-8 px-6 py-2 bg-[#282a31] hover:bg-[#33343c] text-white font-bold rounded-xl border border-[#434654] transition-colors"
@@ -220,7 +220,7 @@ function QRScanner() {
                   <div className="flex justify-between items-center pb-3 border-b border-[#282a31]">
                     <span className="text-[#c3c6d6] text-sm font-bold">Time</span>
                     <span className="text-white font-bold">
-                      {new Date(result.appointmentDate).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})} - {new Date(result.appointmentDate).toLocaleDateString('vi-VN')}
+                      {new Date(result.appointmentDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(result.appointmentDate).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">

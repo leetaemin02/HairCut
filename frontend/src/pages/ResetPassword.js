@@ -7,7 +7,7 @@ function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState("idle"); // idle, loading, success, error
   const [message, setMessage] = useState("");
-  
+
   const { token } = useParams();
   const navigate = useNavigate();
 
@@ -36,7 +36,7 @@ function ResetPassword() {
       const res = await authAPI.resetPassword(token, { password });
       setMessage(res.data.message || "Đặt lại mật khẩu thành công!");
       setStatus("success");
-      
+
       // Navigate to login after 3 seconds
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
@@ -62,11 +62,10 @@ function ResetPassword() {
 
         {message && (
           <div
-            className={`p-4 rounded-xl mb-6 text-sm ${
-              status === "success"
+            className={`p-4 rounded-xl mb-6 text-sm ${status === "success"
                 ? "bg-green-500/10 text-green-400 border border-green-500/20"
                 : "bg-red-500/10 text-red-400 border border-red-500/20"
-            }`}
+              }`}
           >
             {message}
           </div>

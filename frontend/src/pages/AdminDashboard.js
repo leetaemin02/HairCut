@@ -42,6 +42,7 @@ function AdminDashboard() {
   const [barberStats, setBarberStats] = useState([]);
   const [vouchers, setVouchers] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [ratingStats, setRatingStats] = useState({});
 
   // Views Option
   const [isCalendarView, setIsCalendarView] = useState(false);
@@ -123,8 +124,12 @@ function AdminDashboard() {
         const res = await lookbookAPI.getLookbook();
         setLookbooks(res.data);
       } else if (activeTab === "kpi") {
-        const res = await authAPI.getBarberStats();
-        setBarberStats(res.data);
+        const [bRes, rRes] = await Promise.all([
+          authAPI.getBarberStats(),
+          reviewAPI.getBarberRatingStats()
+        ]);
+        setBarberStats(bRes.data);
+        setRatingStats(rRes.data);
       } else if (activeTab === "vouchers") {
         const res = await voucherAPI.getVouchers();
         setVouchers(res.data);
@@ -633,6 +638,12 @@ function AdminDashboard() {
                         <div>
                           <h4 className="text-lg font-bold text-white">{barber.name}</h4>
                           <p className="text-xs font-bold text-[#c3c6d6] uppercase tracking-wider">{barber.specialty || "Master Barber"}</p>
+                          {/* Rating display */}
+                          <div className="flex items-center gap-1 mt-1 text-yellow-400">
+                            <span className="text-sm font-bold text-white mr-1">{ratingStats[barber._id]?.avgRating || "5.0"}</span>
+                            <span className="text-xs">{"★".repeat(Math.floor(ratingStats[barber._id]?.avgRating || 5)) + "☆".repeat(5 - Math.floor(ratingStats[barber._id]?.avgRating || 5))}</span>
+                            <span className="text-[10px] text-[#c3c6d6] ml-1">({ratingStats[barber._id]?.reviewCount || 0})</span>
+                          </div>
                         </div>
                       </div>
 
@@ -985,4 +996,3 @@ function StatCard({ label, value, subtext, color = "text-white" }) {
 }
 
 export default AdminDashboard;
-

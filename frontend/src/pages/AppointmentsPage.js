@@ -410,14 +410,14 @@ function AppointmentsPage() {
               <div className="space-y-4">
                 <div>
                   <h1 className="text-4xl font-bold font-heading">
-                    Book Your Appointment
+                    Đặt lịch cắt tóc
                   </h1>
                   <div className="flex items-center gap-6 mt-4">
                     <p className="text-sm font-medium text-white/60">
                       <span className="text-blue-400 font-bold">
-                        1. Service
+                        1. Chọn dịch vụ
                       </span>{" "}
-                      &gt; 2. Barber &gt; 3. Time &gt; 4. Details
+                      &gt; 2. Chọn Barber &gt; 3. Chọn Thời gian &gt; 4. Để lại lời nhắn
                     </p>
                   </div>
                 </div>
@@ -443,7 +443,7 @@ function AppointmentsPage() {
                   {/* Step 1: Select Service */}
                   <section>
                     <h2 className="text-2xl font-bold font-heading pb-4">
-                      Select a Service
+                      Lựa chọn dịch vụ
                     </h2>
 
                     {/* Render by categories */}
@@ -532,7 +532,7 @@ function AppointmentsPage() {
                   {step >= 2 && (
                     <section>
                       <h2 className="text-2xl font-bold font-heading pb-4">
-                        Choose Your Barber
+                        Chọn thợ cắt tóc
                       </h2>
                       <motion.div
                         initial={{ opacity: 0, x: 20 }}
@@ -576,16 +576,6 @@ function AppointmentsPage() {
                             </div>
                           </motion.div>
                         ))}
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="flex flex-col items-center justify-center gap-3 p-4 rounded-lg border-2 border-dashed border-white/20 bg-transparent cursor-pointer transition-all hover:border-white/40 hover:text-white/80 text-white/60"
-                        >
-                          <span className="text-4xl">👥</span>
-                          <p className="text-base font-bold text-center">
-                            Any Available
-                          </p>
-                        </motion.div>
                       </motion.div>
                     </section>
                   )}
@@ -677,7 +667,7 @@ function AppointmentsPage() {
                       {selectedDateOnly && (
                         <section>
                           <h3 className="text-white text-lg font-bold font-heading mb-4">
-                            Available Times (
+                            Khung giờ cắt tóc  (
                             {selectedDateOnly.toLocaleDateString("default", {
                               weekday: "long",
                               month: "short",
@@ -750,17 +740,25 @@ function AppointmentsPage() {
                 <aside className="lg:col-span-1">
                   <div className="sticky top-28 flex flex-col gap-6 rounded-xl bg-white/5 p-6 border border-white/10">
                     <h3 className="text-xl font-bold font-heading text-white">
-                      Appointment Summary
+                      Chi tiết
                     </h3>
 
                     {selectedServicesData.length > 0 && selectedServicesData.map((service) => (
                       <div key={service._id} className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded flex-shrink-0 flex items-center justify-center text-xl">
-                          ✂️
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                          {service.image ? (
+                            <img
+                              src={service.image}
+                              alt={service.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xl">✂️</span>
+                          )}
                         </div>
                         <div className="flex-1">
                           <p className="text-xs text-white/50 uppercase font-bold tracking-wider">
-                            Service
+                            Dịch vụ
                           </p>
                           <p className="text-sm font-bold text-white">
                             {service.name}
@@ -808,7 +806,7 @@ function AppointmentsPage() {
                     {appointmentDate && (
                       <div className="p-3 rounded-lg border-2 border-blue-600/40 bg-blue-600/5">
                         <p className="text-xs text-blue-400 uppercase font-bold tracking-wider">
-                          Appointment Time
+                          Thời gian đặt lịch
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <span>📅</span>
@@ -870,9 +868,6 @@ function AppointmentsPage() {
                           </span>
                         </div>
                       )}
-                      <p className="text-[10px] text-white/40 text-center">
-                        Tax included in total price
-                      </p>
                     </div>
 
                     <button
@@ -891,7 +886,7 @@ function AppointmentsPage() {
                         : "bg-white/10 text-white/50 cursor-not-allowed"
                         }`}
                     >
-                      {bookingLoading ? "Booking..." : "Confirm Booking"}
+                      {bookingLoading ? "Đang xử lý..." : "Xác nhận đặt lịch"}
                     </button>
 
                     {step >= 2 && (
@@ -899,7 +894,7 @@ function AppointmentsPage() {
                         onClick={() => setStep(2)}
                         className="text-center text-white/40 hover:text-white transition-colors text-sm font-medium"
                       >
-                        ← Back to Barbers
+                        ← Quay lại chọn thợ cắt tóc
                       </button>
                     )}
                   </div>
@@ -961,4 +956,3 @@ function AppointmentsPage() {
 }
 
 export default AppointmentsPage;
-

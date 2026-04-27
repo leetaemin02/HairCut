@@ -37,7 +37,7 @@ const AIChatbot = () => {
 
     setChatHistory((prev) => [...prev, userMessage]);
     setMessage("");
-    
+
     // Nếu câu hỏi nằm trong danh sách định trước (if)
     if (predefinedAnswers[userMessageText]) {
       setIsLoading(true);
@@ -93,7 +93,7 @@ const AIChatbot = () => {
     setMessage(text);
     // Use a small timeout to allow state to update before submit
     setTimeout(() => {
-      handleSendMessage({ preventDefault: () => {} });
+      handleSendMessage({ preventDefault: () => { } });
     }, 100);
   };
 
@@ -164,8 +164,8 @@ const AIChatbot = () => {
                   <p className="text-xs text-center text-slate-400 mb-2">Câu hỏi thường gặp:</p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     {quickQuestions.map((q, idx) => (
-                      <button 
-                        key={idx} 
+                      <button
+                        key={idx}
                         onClick={() => handleQuickQuestion(q)}
                         className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs px-3 py-1.5 rounded-full hover:bg-blue-500/20 transition-colors"
                       >
@@ -179,12 +179,12 @@ const AIChatbot = () => {
             </div>
 
             <div className="bg-[#1c2230] p-3 border-t border-[#282a31]">
-               <a 
-                 href="/appointments" 
-                 className="block w-full text-center bg-gradient-to-r from-[#1754cf] to-[#003ea7] hover:from-[#1349b8] hover:to-[#003185] text-white py-2 rounded-lg font-bold text-sm shadow-md transition-all mb-2"
-               >
-                 Tới trang Đặt Lịch ngay &rarr;
-               </a>
+              <a
+                href="/appointments"
+                className="block w-full text-center bg-gradient-to-r from-[#1754cf] to-[#003ea7] hover:from-[#1349b8] hover:to-[#003185] text-white py-2 rounded-lg font-bold text-sm shadow-md transition-all mb-2"
+              >
+                Tới trang Đặt Lịch ngay &rarr;
+              </a>
               <form className="ai-chat-input-area border-none pt-0 mt-0" onSubmit={handleSendMessage}>
                 <input
                   type="text"

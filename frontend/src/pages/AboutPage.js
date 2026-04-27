@@ -98,7 +98,7 @@ function AboutPage() {
             className="max-w-4xl mx-auto text-center"
           >
             <h2 className="text-[12px] md:text-sm font-bold tracking-[0.2em] text-[#1754cf] uppercase mb-4">Nguồn gốc của The Blue Blade</h2>
-            <h3 className="text-3xl md:text-5xl font-bold mb-8 text-white tracking-tight">Crafting Confidence Since Day One</h3>
+            <h3 className="text-3xl md:text-5xl font-bold mb-8 text-white tracking-tight">Xây dựng niềm tin từ những điều nhỏ nhất</h3>
             <p className="text-lg text-[#c3c6d6] leading-relaxed mb-6 font-light">
               Được thành lập dựa trên niềm khát khao làm đẹp cho các cánh đàn ông các bạn trẻ, nơi mà bạn có thể tin tưởng. Tôi mong muốn tạo ra một không gian không bị ảnh hưởng bởi những yếu tố bên ngoài và sự hỗn loạn ồn ào của nhịp sống nhộn nhịp nơi thành thị. The Blue Blade được thành lập để cung cấp một bầu không khí sang trọng, chuyên nghiệp và thư giãn.
             </p>
@@ -121,7 +121,7 @@ function AboutPage() {
               <div className="w-14 h-14 rounded-full bg-[#1754cf]/10 flex items-center justify-center text-2xl mb-6 text-[#b4c5ff]">
                 📍
               </div>
-              <h4 className="text-xl font-bold text-white mb-2">Our Location</h4>
+              <h4 className="text-xl font-bold text-white mb-2">Địa chỉ</h4>
               <p className="text-[#c3c6d6] text-lg leading-relaxed">
                 71/41, Phú Nhuận,<br />
                 TP.HCM, Vietnam
@@ -214,4 +214,3 @@ function AboutPage() {
 }
 
 export default AboutPage;
-

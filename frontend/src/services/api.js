@@ -27,7 +27,7 @@ export const authAPI = {
   getBarbers: () => api.get("/auth/barbers"),
   getBarbersByService: (specialty) => api.get(`/auth/barbers?specialty=${specialty}`),
   getBarberById: (id) => api.get(`/auth/barbers/${id}`),
-  
+
   // Admin User controls
   getAllUsers: () => api.get("/auth/admin/users"),
   updateUserRole: (id, roleData) => api.put(`/auth/admin/users/${id}/role`, roleData),
