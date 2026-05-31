@@ -60,7 +60,7 @@ function ServiceDetail() {
 
           {/* Left Column: Image, Description, Process */}
           <div className="lg:col-span-2 space-y-12">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[16/9]">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[16/9] p-4 bg-white/5">
               <img
                 src={service.image}
                 alt={service.name}

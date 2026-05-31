@@ -72,6 +72,7 @@ function AdminDashboard() {
   // Voucher Modal State
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState(null);
+  const [selectedAppointmentDetails, setSelectedAppointmentDetails] = useState(null);
   const [voucherForm, setVoucherForm] = useState({
     code: "",
     title: "",
@@ -105,8 +106,8 @@ function AdminDashboard() {
     }
   }, [activeTab, user]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       if (activeTab === "dashboard") {
         const res = await authAPI.getStats();
@@ -140,7 +141,7 @@ function AdminDashboard() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -155,7 +156,7 @@ function AdminDashboard() {
     if (window.confirm(`Thay đổi vai trò thành ${newRole}?`)) {
       try {
         await authAPI.updateUserRole(id, { role: newRole });
-        fetchData();
+        fetchData(false);
       } catch (err) { alert("Lỗi cập nhật vai trò"); }
     }
   };
@@ -164,7 +165,7 @@ function AdminDashboard() {
     if (window.confirm("Bạn có chắc muốn xóa người dùng này?")) {
       try {
         await authAPI.deleteUser(id);
-        fetchData();
+        fetchData(false);
       } catch (err) { alert("Lỗi xóa người dùng"); }
     }
   };
@@ -186,7 +187,7 @@ function AdminDashboard() {
       if (editingServiceId) await serviceAPI.updateService(editingServiceId, serviceForm);
       else await serviceAPI.createService(serviceForm);
       setIsServiceModalOpen(false);
-      fetchData();
+      fetchData(false);
     } catch (err) { alert("Lỗi khi lưu dịch vụ"); }
   };
 
@@ -194,7 +195,7 @@ function AdminDashboard() {
     if (window.confirm("Xóa dịch vụ này?")) {
       try {
         await serviceAPI.deleteService(id);
-        fetchData();
+        fetchData(false);
       } catch (err) { alert("Lỗi xóa dịch vụ"); }
     }
   };
@@ -216,7 +217,7 @@ function AdminDashboard() {
       if (editingLookbookId) await lookbookAPI.updateLookbook(editingLookbookId, lookbookForm);
       else await lookbookAPI.createLookbook(lookbookForm);
       setIsLookbookModalOpen(false);
-      fetchData();
+      fetchData(false);
     } catch (err) { alert("Lỗi khi lưu Lookbook"); }
   };
 
@@ -224,7 +225,7 @@ function AdminDashboard() {
     if (window.confirm("Xóa ảnh Lookbook này?")) {
       try {
         await lookbookAPI.deleteLookbook(id);
-        fetchData();
+        fetchData(false);
       } catch (err) { alert("Lỗi xóa Lookbook"); }
     }
   };
@@ -256,7 +257,7 @@ function AdminDashboard() {
       if (editingVoucherId) await voucherAPI.updateVoucher(editingVoucherId, voucherForm);
       else await voucherAPI.createVoucher(voucherForm);
       setIsVoucherModalOpen(false);
-      fetchData();
+      fetchData(false);
     } catch (err) { alert("Lỗi khi lưu voucher (Mã code có thể bị trùng)"); }
   };
 
@@ -264,7 +265,7 @@ function AdminDashboard() {
     if (window.confirm("Xóa voucher này vĩnh viễn?")) {
       try {
         await voucherAPI.deleteVoucher(id);
-        fetchData();
+        fetchData(false);
       } catch (err) { alert("Lỗi xóa voucher"); }
     }
   };
@@ -273,7 +274,7 @@ function AdminDashboard() {
     if (window.confirm("Xóa đánh giá này?")) {
       try {
         await reviewAPI.deleteReview(id);
-        fetchData();
+        fetchData(false);
       } catch (err) { alert("Lỗi xóa đánh giá"); }
     }
   };
@@ -284,7 +285,7 @@ function AdminDashboard() {
       if (newStatus) payload.status = newStatus;
       if (newPaymentStatus) payload.paymentStatus = newPaymentStatus;
       await appointmentAPI.updateAppointment(id, payload);
-      fetchData();
+      fetchData(false);
     } catch (err) {
       const msg = err.response?.data?.message || "Lỗi cập nhật lịch hẹn";
       alert(msg);
@@ -540,7 +541,7 @@ function AdminDashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filtered.map(s => (
                           <div key={s._id} className="p-5 bg-[#1c2230] rounded-2xl border border-[#282a31] hover:border-[#1754cf]/50 group flex flex-col">
-                            {s.image ? <img src={s.image} alt={s.name} className="w-full h-40 object-cover rounded-xl mb-4" /> : <div className="w-full h-40 bg-[#111621] rounded-xl border border-[#282a31] mb-4 flex items-center justify-center text-[#c3c6d6]/30 text-xs font-bold uppercase tracking-widest">No Image</div>}
+                            {s.image ? <img src={s.image} alt={s.name} className="w-full h-40 object-cover rounded-none mb-4" /> : <div className="w-full h-40 bg-[#111621] rounded-none border border-[#282a31] mb-4 flex items-center justify-center text-[#c3c6d6]/30 text-xs font-bold uppercase tracking-widest">No Image</div>}
                             <h3 className="text-lg font-bold text-white mb-2">{s.name}</h3><p className="text-[#c3c6d6] text-sm mb-4 line-clamp-2 flex-grow">{s.description || "Chưa có mô tả..."}</p>
                             <div className="flex justify-between items-center bg-[#111621] border border-[#282a31] p-3 rounded-lg mb-4 mt-auto"><span className="text-[#1754cf] font-bold">{Number(s.price).toLocaleString()}đ</span><span className="text-[#c3c6d6] text-xs font-bold uppercase tracking-wider">⏱ {s.duration} phút</span></div>
                             <div className="flex gap-2"><button onClick={() => openEditServiceModal(s)} className="flex-1 bg-[#282a31] hover:bg-[#434654] text-sm font-bold rounded-lg py-2">Sửa</button><button onClick={() => handleDeleteService(s._id)} className="flex-1 text-[#ffb4ab] bg-[#ffb4ab]/10 hover:bg-[#ffb4ab]/20 text-sm font-bold rounded-lg py-2">Xóa</button></div>
@@ -575,7 +576,7 @@ function AdminDashboard() {
                         <tr key={a._id} className="border-b border-[#282a31]/50 hover:bg-[#282a31]/30 transition-colors">
                           <td className="py-4 px-6"><div className="text-white font-bold text-sm">{new Date(a.appointmentDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div><div className="text-[#c3c6d6] text-xs">{new Date(a.appointmentDate).toLocaleDateString('vi-VN')}</div></td>
                           <td className="py-4 px-6"><div className="text-base font-bold text-white mb-1">{a.customerId?.name || "Khách Vãng Lai"}</div><div className="text-xs text-[#c3c6d6] uppercase tracking-wider font-bold">Thợ: <span className="text-[#1754cf]">{a.barberId?.name || "Chưa rỏ"}</span></div></td>
-                          <td className="py-4 px-6"><div className="text-sm font-bold text-[#e2e2ec] mb-1">{a.serviceId?.name || "Gói cơ bản"}</div><div className="text-xs text-[#1754cf] font-bold">{Number(a.totalPrice || 0).toLocaleString()}đ</div></td>
+                          <td className="py-4 px-6"><div className="text-sm font-bold text-[#e2e2ec] mb-1">{a.serviceIds && a.serviceIds.length > 0 ? a.serviceIds[0].name + (a.serviceIds.length > 1 ? ` (+${a.serviceIds.length - 1})` : '') : "Gói cơ bản"}</div><div className="text-xs text-[#1754cf] font-bold">{Number(a.totalPrice || 0).toLocaleString()}đ</div></td>
                           <td className="py-4 px-6">
                             <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest ${getStatusBadge(a.status)}`}>{a.status}</span>
                           </td>
@@ -584,8 +585,9 @@ function AdminDashboard() {
                               {a.paymentStatus === 'paid' ? '✅ Đã TT' : a.paymentStatus === 'cancelled' ? '❌ Hủy' : '⏳ Chưa TT'}
                             </span>
                           </td>
-                          <td className="py-4 px-6 text-right">
-                            <div className="flex gap-2 justify-end flex-wrap">
+                          <td className="py-4 px-6 text-right whitespace-nowrap">
+                            <div className="flex gap-2 justify-end items-center flex-nowrap">
+                              <button onClick={() => setSelectedAppointmentDetails(a)} className="bg-[#1754cf]/20 text-[#1754cf] hover:bg-[#1754cf] hover:text-white border border-[#1754cf]/30 rounded-md px-3 py-1.5 font-bold text-xs transition-colors">Chi tiết</button>
                               <select className="bg-[#111621] border border-[#282a31] rounded-md p-1.5 outline-none text-[#e2e2ec] font-bold text-xs uppercase tracking-wider focus:border-[#1754cf]" value={a.status} onChange={(e) => handleUpdateAppointment(a._id, e.target.value, null)}>
                                 <option value="pending">Chờ XN</option><option value="confirmed">Đã CF</option><option value="completed">Hoàn Tất</option><option value="cancelled">Đã Hủy</option>
                               </select>
@@ -640,9 +642,9 @@ function AdminDashboard() {
                           <p className="text-xs font-bold text-[#c3c6d6] uppercase tracking-wider">{barber.specialty || "Master Barber"}</p>
                           {/* Rating display */}
                           <div className="flex items-center gap-1 mt-1 text-yellow-400">
-                            <span className="text-sm font-bold text-white mr-1">{ratingStats[barber._id]?.avgRating || "5.0"}</span>
-                            <span className="text-xs">{"★".repeat(Math.floor(ratingStats[barber._id]?.avgRating || 5)) + "☆".repeat(5 - Math.floor(ratingStats[barber._id]?.avgRating || 5))}</span>
-                            <span className="text-[10px] text-[#c3c6d6] ml-1">({ratingStats[barber._id]?.reviewCount || 0})</span>
+                             <span className="text-sm font-bold text-white mr-1">{ratingStats[barber._id]?.avgRating || "5.0"}</span>
+                             <span className="text-xs">{"★".repeat(Math.floor(ratingStats[barber._id]?.avgRating || 5)) + "☆".repeat(5 - Math.floor(ratingStats[barber._id]?.avgRating || 5))}</span>
+                             <span className="text-[10px] text-[#c3c6d6] ml-1">({ratingStats[barber._id]?.reviewCount || 0})</span>
                           </div>
                         </div>
                       </div>
@@ -968,6 +970,101 @@ function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* APPOINTMENT DETAILS MODAL */}
+      {selectedAppointmentDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-[#1c2230] w-full max-w-2xl rounded-2xl border border-[#282a31] p-0 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-[#282a31] flex justify-between items-center bg-[#111621]">
+              <div>
+                <h3 className="text-xl font-bold text-white uppercase tracking-widest">Chi tiết Đơn Hàng</h3>
+                <p className="text-[#1754cf] font-bold text-sm mt-1">{selectedAppointmentDetails.appointmentId}</p>
+              </div>
+              <button onClick={() => setSelectedAppointmentDetails(null)} className="text-[#c3c6d6] hover:text-white text-3xl font-light">&times;</button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-grow space-y-6 custom-scrollbar">
+              
+              {/* Customer & Barber Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[#111621] border border-[#282a31] p-4 rounded-xl">
+                  <p className="text-[#c3c6d6] text-[10px] font-bold uppercase tracking-widest mb-1">Khách Hàng</p>
+                  <p className="text-white font-bold text-base">{selectedAppointmentDetails.customerId?.name || "Khách Vãng Lai"}</p>
+                  <p className="text-[#c3c6d6] text-sm mt-1">{selectedAppointmentDetails.customerId?.email || "Không có email"}</p>
+                </div>
+                <div className="bg-[#111621] border border-[#282a31] p-4 rounded-xl">
+                  <p className="text-[#c3c6d6] text-[10px] font-bold uppercase tracking-widest mb-1">Thợ Phụ Trách</p>
+                  <p className="text-[#1754cf] font-bold text-base">{selectedAppointmentDetails.barberId?.name || "Chưa rõ"}</p>
+                  <p className="text-[#c3c6d6] text-sm mt-1">{selectedAppointmentDetails.barberId?.specialty || "Barber"}</p>
+                </div>
+              </div>
+
+              {/* Time Info */}
+              <div className="flex gap-4">
+                <div className="flex-1 bg-[#1754cf]/10 border border-[#1754cf]/30 p-4 rounded-xl flex items-center gap-4">
+                  <div className="text-2xl">📅</div>
+                  <div>
+                    <p className="text-[#1754cf] text-[10px] font-bold uppercase tracking-widest mb-1">Thời Gian Khách Đến</p>
+                    <p className="text-white font-bold text-lg">
+                      {new Date(selectedAppointmentDetails.appointmentDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      <span className="text-[#c3c6d6] text-sm ml-2 font-normal">
+                        - {new Date(selectedAppointmentDetails.appointmentDate).toLocaleDateString('vi-VN')}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Services List */}
+              <div>
+                <p className="text-[#c3c6d6] text-[10px] font-bold uppercase tracking-widest mb-3">Dịch Vụ Đã Chọn ({selectedAppointmentDetails.serviceIds?.length || 0})</p>
+                <div className="space-y-3">
+                  {selectedAppointmentDetails.serviceIds && selectedAppointmentDetails.serviceIds.map(service => (
+                    <div key={service._id} className="bg-[#111621] border border-[#282a31] p-4 rounded-xl flex items-center justify-between">
+                       <div className="flex items-center gap-4">
+                          {service.image ? (
+                             <img src={service.image} alt="" className="w-12 h-12 rounded object-cover border border-[#282a31]" />
+                          ) : (
+                             <div className="w-12 h-12 bg-[#1c2230] rounded border border-[#282a31] flex items-center justify-center text-xl">✂️</div>
+                          )}
+                          <div>
+                            <p className="text-white font-bold text-sm">{service.name}</p>
+                            <p className="text-[#c3c6d6] text-[10px] uppercase tracking-wider">{service.duration} Phút</p>
+                          </div>
+                       </div>
+                       <p className="text-[#1754cf] font-bold">{Number(service.price).toLocaleString()}đ</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedAppointmentDetails.notes && (
+                <div>
+                  <p className="text-[#c3c6d6] text-[10px] font-bold uppercase tracking-widest mb-2">Ghi Chú Của Khách</p>
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl">
+                    <p className="text-yellow-500 text-sm italic">"{selectedAppointmentDetails.notes}"</p>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer (Totals) */}
+            <div className="p-6 bg-[#111621] border-t border-[#282a31] flex items-center justify-between">
+               <div>
+                  <p className="text-[#c3c6d6] text-xs font-bold uppercase tracking-widest mb-1">Tổng Cộng</p>
+                  <p className="text-green-400 font-bold text-2xl">{Number(selectedAppointmentDetails.totalPrice || 0).toLocaleString()}đ</p>
+               </div>
+               <button onClick={() => setSelectedAppointmentDetails(null)} className="px-6 py-3 bg-[#282a31] hover:bg-[#33343c] text-white font-bold rounded-xl transition-colors">Đóng Lại</button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -996,3 +1093,4 @@ function StatCard({ label, value, subtext, color = "text-white" }) {
 }
 
 export default AdminDashboard;
+

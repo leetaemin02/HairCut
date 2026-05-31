@@ -64,7 +64,8 @@ exports.createPayment = async (req, res) => {
 
         if (!returnUrl || returnUrl.includes('localhost')) {
             // Send back to the Frontend's payment result route
-            returnUrl = `${protocol}://${currentHost}/payment-result`;
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+            returnUrl = `${frontendUrl}/payment-result`;
         }
 
         const url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";

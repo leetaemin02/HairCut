@@ -115,7 +115,7 @@ function Dashboard() {
                     onClick={() => navigate(`/services/${service._id}`)}
                     className="group p-6 rounded-2xl bg-white/5 border border-white/5 transition-all hover:-translate-y-1 cursor-pointer"
                   >
-                    <div className="w-full h-64 mb-6 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-4xl transition-transform overflow-hidden  border border-white/5 relative">
+                    <div className="w-full h-64 mb-6 rounded-none bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-4xl transition-transform overflow-hidden  border border-white/5 relative">
                       {service.image ? (
                         <img
                           src={service.image}
@@ -309,3 +309,4 @@ function Dashboard() {
 }
 
 export default Dashboard;
+

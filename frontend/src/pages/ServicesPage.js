@@ -127,11 +127,11 @@ function ServicesPage() {
                   <motion.div
                     key={service._id}
                     variants={itemVariants}
-                    className="group bg-white/5 border border-white/5 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all duration-500 flex flex-col h-full "
+                    className="group bg-white/5 border border-white/5 rounded-2xl p-4 overflow-hidden hover:border-blue-500/30 transition-all duration-500 flex flex-col h-full "
                   >
                     {/* Service Image */}
                     <div
-                      className="relative h-64 overflow-hidden cursor-pointer"
+                      className="relative h-64 overflow-hidden cursor-pointer rounded-none"
                       onClick={() => navigate(`/services/${service._id}`)}
                     >
                       {service.image ? (
@@ -208,3 +208,4 @@ function ServicesPage() {
 }
 
 export default ServicesPage;
+
