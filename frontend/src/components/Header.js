@@ -50,6 +50,12 @@ function Header({ user }) {
                     >
                         Giới thiệu
                     </button>
+                    <button
+                        onClick={() => navigate("/security-lab")}
+                        className={`font-serif font-bold text-[18px] transition-colors ${location.pathname === "/security-lab" ? "text-white underline underline-offset-8" : "text-white/80 hover:text-white"}`}
+                    >
+                        Security Lab 🛡️
+                    </button>
                     {user?.role === "admin" && (
                         <button
                             onClick={() => navigate("/admin")}

@@ -18,6 +18,7 @@ import BarberDashboard from "./pages/BarberDashboard";
 import PaymentResult from "./pages/PaymentResult";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import SecurityLab from "./pages/SecurityLab";
 import AIChatbot from "./components/AIChatbot/AIChatbot";
 import "./App.css";
 
@@ -103,6 +104,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/security-lab" element={<SecurityLab />} />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
       <AIChatbot />

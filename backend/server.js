@@ -14,7 +14,12 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const voucherRoutes = require("./routes/voucherRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const securityRoutes = require("./routes/securityRoutes");
 const app = express();
+
+// Tin tưởng Proxy của Vercel/Nginx để Morgan ghi đúng IP thật của người dùng
+// thay vì ghi IP của Vercel CDN (x-forwarded-for header)
+app.set("trust proxy", 1);
 
 // Middleware
 app.use(cors());
@@ -60,6 +65,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/vouchers", voucherRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/security", securityRoutes);
 // Health check
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "Server is running" });

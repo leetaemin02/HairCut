@@ -86,4 +86,10 @@ export const reviewAPI = {
   getBarberRatingStats: () => api.get("/reviews/barber-stats"),
 };
 
+// Security API
+export const securityAPI = {
+  getStatus: () => api.get("/security/status"),
+  getHeaders: () => api.get("/security/headers"),
+};
+
 export default api;
